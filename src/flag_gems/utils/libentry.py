@@ -66,7 +66,7 @@ class LibEntry(triton.KernelInterface):
                 args = [
                     arg
                     for i, arg in enumerate(args)
-                    if not self.fn.params[i].is_constexpr
+                    if i not in self.fn.constexprs
                 ]
                 kernel = self.kernel_cache[entry_key]
         grid = kwargs["grid"]
