@@ -49,7 +49,7 @@ def softmax_kernel(
     input_ptrs = input_ptr + offset
     inp = tl.load(input_ptrs, mask=mask, other=-float("inf"))
     row_minus_max = inp - tl.max(inp, axis=1)[:, None]
-    numerator = tl.exp(row_minus_max)
+    numerator = tl.exp(row_minus_max.to(tl.float32))
     denominator = tl.sum(numerator, axis=1)[:, None]
     softmax_output = numerator / denominator
     output_ptrs = output_ptr + offset
