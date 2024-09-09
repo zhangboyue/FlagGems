@@ -1,3 +1,4 @@
+import builtins
 import logging
 import math
 from collections import namedtuple
@@ -14,7 +15,7 @@ from ..utils import libentry
 def max_kernel_1(
     inp,
     mid,
-    M,
+    M: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
 ):
     pid = tl.program_id(0)
@@ -22,19 +23,21 @@ def max_kernel_1(
     inp_ptrs = inp + offset
     mask = offset < M
     inp_val = tl.load(inp_ptrs, mask=mask, other=-float("inf"))
-    max_val = tl.max(inp_val)
+    # inp_val = tl.where(mask, inp_val, -float("inf"))
+    max_val = tl.max(inp_val, axis=0)
     mid_ptr = mid + pid
     tl.store(mid_ptr, max_val)
 
 
 @libentry()
 @triton.jit
-def max_kernel_2(mid, out, mid_size, BLOCK_MID: tl.constexpr):
+def max_kernel_2(mid, out, mid_size: tl.constexpr, BLOCK_MID: tl.constexpr):
     offset = tl.arange(0, BLOCK_MID)
     mid_ptrs = mid + offset
     mask = offset < mid_size
     mid_val = tl.load(mid_ptrs, mask=mask, other=-float("inf"))
-    max_val = tl.max(mid_val)
+    # mid_val = tl.where(mask, mid_val, -float("inf"))
+    max_val = tl.max(mid_val, axis=0)
     tl.store(out, max_val)
 
 
@@ -45,9 +48,7 @@ def heur_block_n(args):
 @libentry()
 @triton.autotune(
     configs=[
-        triton.Config({"BLOCK_M": 8}, num_warps=8),
-        triton.Config({"BLOCK_M": 16}, num_warps=8),
-        triton.Config({"BLOCK_M": 32}, num_warps=8),
+        triton.Config({"BLOCK_M": 512}, num_warps=8),
     ],
     key=[
         "M",
@@ -64,9 +65,9 @@ def max_kernel(
     inp,
     out_value,
     out_index,
-    M,
-    N,
-    K,
+    M: tl.constexpr,
+    N: tl.constexpr,
+    K: tl.constexpr,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
@@ -82,7 +83,8 @@ def max_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     inp_ptrs = inp + offset
     inp_vals = tl.load(inp_ptrs, mask=mask, other=-float("inf"))
-    result_value, result_index = tl.max(inp_vals, axis=1, return_indices=True)
+    result_value = tl.max(inp_vals, axis=1)
+    result_index = tl.argmax(inp_vals, axis=1)
 
     out_value_ptrs = out_value + offset_index
     out_index_ptrs = out_index + offset_index
@@ -94,17 +96,22 @@ def max_kernel(
 def max(inp):
     logging.debug("GEMS MAX")
     M = inp.numel()
-    block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
-    mid_size = triton.cdiv(M, block_size)
+    # block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
+    # mid_size = triton.cdiv(M, block_size)
+    mid_size = 12  # CLUSTER_NUM
+    block_size = triton.next_power_of_2(triton.cdiv(M, mid_size))
     block_mid = triton.next_power_of_2(mid_size)
 
     dtype = inp.dtype
     mid = torch.empty((mid_size,), dtype=dtype, device=inp.device)
     out = torch.empty([], dtype=dtype, device=inp.device)
+    final_mid_size = builtins.min(
+        math.ceil(inp.numel() / block_size), builtins.min(mid_size, M)
+    )
 
     with torch.cuda.device(inp.device):
         max_kernel_1[(mid_size, 1, 1)](inp, mid, M, block_size)
-        max_kernel_2[(1, 1, 1)](mid, out, mid_size, block_mid)
+        max_kernel_2[(1, 1, 1)](mid, out, final_mid_size, block_mid)
     return out
 
 

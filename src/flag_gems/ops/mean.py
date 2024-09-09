@@ -1,3 +1,4 @@
+import builtins
 import logging
 import math
 
@@ -42,24 +43,28 @@ def mean(inp, *, dtype=None):
     M = inp.numel()
     if dtype is None:
         dtype = inp.dtype
-    block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
-    mid_size = triton.cdiv(M, block_size)
+    # block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
+    # mid_size = triton.cdiv(M, block_size)
+    mid_size = 12  # CLUSTER_NUM
+    block_size = triton.next_power_of_2(triton.cdiv(M, mid_size))
     block_mid = triton.next_power_of_2(mid_size)
 
     mid = torch.empty((mid_size,), dtype=dtype, device=inp.device)
     out = torch.empty([], dtype=dtype, device=inp.device)
+    final_mid_size = builtins.min(
+        math.ceil(inp.numel() / block_size), builtins.min(mid_size, M)
+    )
 
     with torch.cuda.device(inp.device):
         mean_kernel_1[(mid_size, 1, 1)](inp, mid, M, block_size)
-        mean_kernel_2[(1, 1, 1)](mid, out, M, mid_size, block_mid)
+        mean_kernel_2[(1, 1, 1)](mid, out, M, final_mid_size, block_mid)
     return out
 
 
 @libentry()
 @triton.autotune(
     configs=[
-        triton.Config({"BLOCK_M": m, "BLOCK_N": 1024}, num_warps=4)
-        for m in [1, 2, 4, 8]
+        triton.Config({"BLOCK_M": m, "BLOCK_N": 1024}, num_warps=4) for m in [512]
     ],
     key=["M", "N"],
 )

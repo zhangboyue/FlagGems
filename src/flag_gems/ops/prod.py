@@ -1,3 +1,4 @@
+import builtins
 import logging
 import math
 
@@ -8,17 +9,12 @@ import triton.language as tl
 from ..utils import libentry
 
 
-@triton.jit
-def reduce_mul(a, b):
-    return a * b
-
-
 @libentry()
 @triton.jit
 def prod_kernel_mid(
     inp,
     mid,
-    M,
+    M: tl.constexpr,
     BLOCK_SIZE: tl.constexpr,
 ):
     pid = tl.program_id(0)
@@ -26,19 +22,19 @@ def prod_kernel_mid(
     inp_ptrs = inp + offset
     mask = offset < M
     inp_val = tl.load(inp_ptrs, mask=mask, other=1.0).to(tl.float32)
-    mid_value = tl.reduce(inp_val, axis=0, combine_fn=reduce_mul)
+    mid_value = tl.prod(inp_val, axis=0)
     mid_ptr = mid + pid
     tl.store(mid_ptr, mid_value.to(inp_val.dtype))
 
 
 @libentry()
 @triton.jit
-def prod_kernel_result(mid, out, mid_size, BLOCK_MID: tl.constexpr):
+def prod_kernel_result(mid, out, mid_size: tl.constexpr, BLOCK_MID: tl.constexpr):
     offset = tl.arange(0, BLOCK_MID)
     mid_ptrs = mid + offset
     mask = offset < mid_size
     mid_val = tl.load(mid_ptrs, mask=mask, other=1.0).to(tl.float32)
-    prod_val = tl.reduce(mid_val, axis=0, combine_fn=reduce_mul)
+    prod_val = tl.prod(mid_val, axis=0)
     tl.store(out, prod_val)
 
 
@@ -48,16 +44,21 @@ def prod(inp, *, dtype=None):
         dtype = inp.dtype
 
     M = inp.numel()
-    block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
-    mid_size = triton.cdiv(M, block_size)
+    # block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
+    # mid_size = triton.cdiv(M, block_size)
+    mid_size = 12  # CLUSTER_NUM
+    block_size = triton.next_power_of_2(triton.cdiv(M, mid_size))
     block_mid = triton.next_power_of_2(mid_size)
 
     mid = torch.empty((mid_size,), dtype=dtype, device=inp.device)
     out = torch.empty([], dtype=dtype, device=inp.device)
+    final_mid_size = builtins.min(
+        math.ceil(inp.numel() / block_size), builtins.min(mid_size, M)
+    )
 
     with torch.cuda.device(inp.device):
         prod_kernel_mid[(mid_size, 1, 1)](inp, mid, M, block_size)
-        prod_kernel_result[(1, 1, 1)](mid, out, mid_size, block_mid)
+        prod_kernel_result[(1, 1, 1)](mid, out, final_mid_size, block_mid)
     return out
 
 
@@ -68,9 +69,7 @@ def heur_block_n(args):
 @libentry()
 @triton.autotune(
     configs=[
-        triton.Config({"BLOCK_M": 8}, num_warps=8),
-        triton.Config({"BLOCK_M": 16}, num_warps=8),
-        triton.Config({"BLOCK_M": 32}, num_warps=8),
+        triton.Config({"BLOCK_M": 512}, num_warps=8),
     ],
     key=[
         "M",
@@ -86,9 +85,9 @@ def heur_block_n(args):
 def prod_kernel(
     inp,
     out,
-    M,
-    N,
-    K,
+    M: tl.constexpr,
+    N: tl.constexpr,
+    K: tl.constexpr,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
@@ -104,7 +103,7 @@ def prod_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     inp_ptrs = inp + offset
     inp_vals = tl.load(inp_ptrs, mask=mask, other=1.0).to(tl.float32)
-    result_index = tl.reduce(inp_vals, axis=1, combine_fn=reduce_mul)
+    result_index = tl.prod(inp_vals, axis=1)
 
     out_ptrs = out + offset_index
     tl.store(out_ptrs, result_index, mask=mask1)

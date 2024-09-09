@@ -13,6 +13,7 @@ from .accuracy_utils import (
     POINTWISE_SHAPES,
     REPEAT_SIZES,
     TILE_DIMS,
+    XPU_POINTWISE_2D_SHAPES_8192,
     gems_assert_close,
     gems_assert_equal,
     to_reference,
@@ -73,6 +74,7 @@ def test_accuracy_exp(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype)
 
 
+# @pytest.mark.parametrize("shape", KEY_OPS_SHAPES)
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 @pytest.mark.parametrize("approximate", ["none", "tanh"])
@@ -181,6 +183,7 @@ def test_accuracy_rsqrt(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype, equal_nan=True)
 
 
+# @pytest.mark.parametrize("shape", KEY_OPS_SHAPES)
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_sigmoid(shape, dtype):
@@ -258,6 +261,9 @@ def test_accuracy_tanh(shape, dtype):
 @pytest.mark.parametrize("diagonal", [-3, -1, 0, 1, 3])
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_triu(shape, diagonal, dtype):
+    if shape[-1] * shape[-2] > 8192:  # core_num * buffer_size limit
+        shape = XPU_POINTWISE_2D_SHAPES_8192[0]
+
     inp = torch.randn(shape, dtype=dtype, device="cuda")
     ref_inp = to_reference(inp)
 

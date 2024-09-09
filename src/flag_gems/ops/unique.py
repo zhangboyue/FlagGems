@@ -8,12 +8,12 @@ from flag_gems.utils.libentry import libentry
 @libentry()
 @triton.jit
 def simple_unique_flat_kernel(
-    sorted_data_ptr: tl.tensor,
-    sorted_indices_ptr: tl.tensor,  # in
-    data_out_ptr: tl.tensor,
-    inverse_indices_ptr: tl.tensor,
-    idx_ptr: tl.tensor,
-    unique_size_ptr: tl.tensor,  # out
+    sorted_data_ptr,
+    sorted_indices_ptr,  # in
+    data_out_ptr,
+    inverse_indices_ptr,
+    idx_ptr,
+    unique_size_ptr,  # out
     return_inverse: tl.constexpr,
     return_counts: tl.constexpr,
     num_tasks: int,
@@ -52,9 +52,9 @@ def simple_unique_flat_kernel(
 @triton.jit
 def output_counts_flat_impl(
     global_pid,
-    idx_ptr: tl.tensor,
+    idx_ptr,
     origin_num_tasks: int,  # in
-    counts_ptr: tl.tensor,  # out
+    counts_ptr,  # out
     num_tasks: int,
     tile_size: tl.constexpr,
 ):
@@ -80,9 +80,9 @@ def output_counts_flat_impl(
 @libentry()
 @triton.jit
 def output_counts_flat_kernel(
-    idx_ptr: tl.tensor,
+    idx_ptr,
     origin_num_tasks: int,  # in
-    counts_ptr: tl.tensor,  # out
+    counts_ptr,  # out
     num_tasks: int,
     tiles_per_cta: int,
     tile_size: tl.constexpr,
@@ -115,11 +115,11 @@ def output_counts_flat_kernel(
 @triton.jit
 def quick_output_flat_impl(
     global_pid,
-    sorted_data_ptr: tl.tensor,
-    idx_ptr: tl.tensor,
+    sorted_data_ptr,
+    idx_ptr,
     origin_num_tasks: int,  # in
-    data_out_ptr: tl.tensor,
-    counts_ptr: tl.tensor,  # out
+    data_out_ptr,
+    counts_ptr,  # out
     num_tasks: int,
     tile_size: tl.constexpr,
 ):
@@ -149,11 +149,11 @@ def quick_output_flat_impl(
 @libentry()
 @triton.jit
 def quick_output_flat_kernel(
-    sorted_data_ptr: tl.tensor,
-    idx_ptr: tl.tensor,
+    sorted_data_ptr,
+    idx_ptr,
     origin_num_tasks: int,  # in
-    data_out_ptr: tl.tensor,
-    counts_ptr: tl.tensor,  # out
+    data_out_ptr,
+    counts_ptr,  # out
     num_tasks: int,
     tiles_per_cta: int,
     tile_size: tl.constexpr,
@@ -190,10 +190,10 @@ def quick_output_flat_kernel(
 @triton.jit
 def local_quick_unique_flat_impl(
     global_pid,
-    sorted_data_ptr: tl.tensor,  # in
-    local_unique_ptr: tl.tensor,
-    origin_idx_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # out
+    sorted_data_ptr,  # in
+    local_unique_ptr,
+    origin_idx_ptr,
+    tile_sum_ptr,  # out
     global_num_ctas: int,
     num_tasks: int,
     tile_size: tl.constexpr,
@@ -239,10 +239,10 @@ def local_quick_unique_flat_impl(
 @libentry()
 @triton.jit
 def local_quick_unique_flat_kernel(
-    sorted_data_ptr: tl.tensor,  # in
-    local_unique_ptr: tl.tensor,
-    origin_idx_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # out
+    sorted_data_ptr,  # in
+    local_unique_ptr,
+    origin_idx_ptr,
+    tile_sum_ptr,  # out
     global_num_ctas: int,
     num_tasks: int,
     tiles_per_cta: int,
@@ -284,11 +284,11 @@ def local_quick_unique_flat_kernel(
 def global_quick_unique_flat_impl(
     global_pid,
     total,
-    local_unique_ptr: tl.tensor,
-    origin_idx_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # in
-    data_out_ptr: tl.tensor,
-    idx_ptr: tl.tensor,  # out
+    local_unique_ptr,
+    origin_idx_ptr,
+    tile_sum_ptr,  # in
+    data_out_ptr,
+    idx_ptr,  # out
     num_ctas: int,
     global_num_ctas: int,
     next_power_global_num_ctas: tl.constexpr,
@@ -336,11 +336,11 @@ def global_quick_unique_flat_impl(
 @libentry()
 @triton.jit
 def global_quick_unique_flat_kernel(
-    local_unique_ptr: tl.tensor,
-    origin_idx_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # in
-    data_out_ptr: tl.tensor,
-    idx_ptr: tl.tensor,  # out
+    local_unique_ptr,
+    origin_idx_ptr,
+    tile_sum_ptr,  # in
+    data_out_ptr,
+    idx_ptr,  # out
     num_ctas: int,
     global_num_ctas: int,
     next_power_global_num_ctas: tl.constexpr,
@@ -477,9 +477,9 @@ def sorted_quick_unique_flat(sorted_data: torch.Tensor, return_counts: bool):
 @triton.jit
 def local_ne_flat_impl(
     global_pid,
-    sorted_data_ptr: tl.tensor,  # in
-    ne_result_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # out
+    sorted_data_ptr,  # in
+    ne_result_ptr,
+    tile_sum_ptr,  # out
     global_num_ctas: int,
     num_tasks: int,
     tile_size: tl.constexpr,
@@ -508,9 +508,9 @@ def local_ne_flat_impl(
 @libentry()
 @triton.jit
 def local_ne_flat_kernel(
-    sorted_data_ptr: tl.tensor,  # in
-    ne_result_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # out
+    sorted_data_ptr,  # in
+    ne_result_ptr,
+    tile_sum_ptr,  # out
     global_num_ctas: int,
     num_tasks: int,
     tiles_per_cta: int,
@@ -547,13 +547,13 @@ def local_ne_flat_kernel(
 def global_cumsum_flat_impl(
     global_pid,
     total,
-    ne_result_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # in
-    sorted_data_ptr: tl.tensor,
-    sorted_indices_ptr: tl.tensor,  # in
-    data_out_ptr: tl.tensor,
-    inverse_indices_ptr: tl.tensor,
-    idx_ptr: tl.tensor,  # out
+    ne_result_ptr,
+    tile_sum_ptr,  # in
+    sorted_data_ptr,
+    sorted_indices_ptr,  # in
+    data_out_ptr,
+    inverse_indices_ptr,
+    idx_ptr,  # out
     num_ctas: tl.constexpr,
     global_num_ctas: int,
     next_power_global_num_ctas: tl.constexpr,
@@ -615,13 +615,13 @@ def global_cumsum_flat_impl(
 @libentry()
 @triton.jit
 def global_cumsum_flat_kernel(
-    ne_result_ptr: tl.tensor,
-    tile_sum_ptr: tl.tensor,  # in
-    sorted_data_ptr: tl.tensor,
-    sorted_indices_ptr: tl.tensor,  # in
-    data_out_ptr: tl.tensor,
-    inverse_indices_ptr: tl.tensor,
-    idx_ptr: tl.tensor,  # out
+    ne_result_ptr,
+    tile_sum_ptr,  # in
+    sorted_data_ptr,
+    sorted_indices_ptr,  # in
+    data_out_ptr,
+    inverse_indices_ptr,
+    idx_ptr,  # out
     num_ctas: int,
     global_num_ctas: int,
     next_power_global_num_ctas: tl.constexpr,

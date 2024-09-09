@@ -7,6 +7,10 @@ import triton.language as tl
 from ..utils import libentry
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
 def heur_block_n(args):
     return triton.next_power_of_2(args["N"])
 
@@ -21,20 +25,9 @@ def heur_num_warps(args):
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 1}),
-        triton.Config({"BLOCK_M": 2}),
-        triton.Config({"BLOCK_M": 4}),
-        triton.Config({"BLOCK_M": 8}),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
         "num_warps": heur_num_warps,
     }
@@ -43,9 +36,9 @@ def heur_num_warps(args):
 def log_softmax_kernel(
     output_ptr,
     input_ptr,
-    M,
-    N,
-    K,
+    M: tl.constexpr,
+    N: tl.constexpr,
+    K: tl.constexpr,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
@@ -57,6 +50,7 @@ def log_softmax_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     input_ptrs = input_ptr + offset
     inp = tl.load(input_ptrs, mask=mask, other=-float("inf")).to(tl.float32)
+    inp = tl.where(mask, inp, -float("inf"))
     row_minus_max = inp - tl.max(inp, axis=1)[:, None]
     numerator = tl.exp(row_minus_max)
     denominator = tl.sum(numerator, axis=1)[:, None]
@@ -66,20 +60,9 @@ def log_softmax_kernel(
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 1}),
-        triton.Config({"BLOCK_M": 2}),
-        triton.Config({"BLOCK_M": 4}),
-        triton.Config({"BLOCK_M": 8}),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
         "num_warps": heur_num_warps,
     }
@@ -89,9 +72,9 @@ def log_softmax_backward_kernel(
     out_ptr,
     out_grad_ptr,
     in_grad_ptr,
-    M,
-    N,
-    K,
+    M: tl.constexpr,
+    N: tl.constexpr,
+    K: tl.constexpr,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
@@ -106,7 +89,7 @@ def log_softmax_backward_kernel(
     out = tl.load(out_ptrs, mask=mask).to(tl.float32)
     out_grad_ptrs = out_grad_ptr + offsets
     out_grad = tl.load(out_grad_ptrs, mask=mask).to(tl.float32)
-
+    out_grad = tl.where(mask, out_grad, 0.0)
     scale = tl.sum(out_grad, 1)
     in_grad = out_grad - tl.exp(out.to(tl.float32)) * scale[:, None]
 

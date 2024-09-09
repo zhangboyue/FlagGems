@@ -5,9 +5,19 @@ import torch
 import triton
 import triton.language as tl
 import triton.language.core as core
-from triton.language.standard import _log2, zeros_like
+from triton.language.core import zeros_like
 
 from ..utils import libentry
+
+
+def _log2(i: core.constexpr):
+    log2 = 0
+    n = i.value
+    while n > 1:
+        n >>= 1
+        log2 += 1
+    return core.constexpr(log2)
+
 
 _MIN_FLOAT32_VAL: tl.constexpr = torch.finfo(torch.float32).min
 _MAX_FLOAT32_VAL: tl.constexpr = torch.finfo(torch.float32).max

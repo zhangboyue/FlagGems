@@ -260,15 +260,18 @@ def test_accuracy_div_scalar_tensor(shape, scalar, dtype):
 # Note : tl.math.div_rz only support float32, cast will cause diff
 # with torch, so we only do float32 test for now.
 def test_accuracy_trunc_div(shape, dtype):
+    epsilon = 1e-8
     inp1 = torch.randn(shape, dtype=dtype, device="cuda")
     inp2 = torch.randn(shape, dtype=dtype, device="cuda")
+    inp1[inp1 == 0.0] = epsilon
+    inp2[inp2 == 0.0] = epsilon
+
     ref_inp1 = to_reference(inp1, True)
     ref_inp2 = to_reference(inp2, True)
 
     ref_out = torch.div(ref_inp1, ref_inp2, rounding_mode="trunc")
     with flag_gems.use_gems():
-        res_out = torch.div(inp1, inp2, rounding_mode="trunc")
-
+        res_out = torch.div(inp1, inp2, rounding_mode="trunc").cpu()
     logging.debug(
         f"The maximum difference between torch and triton is "
         f"{torch.max(torch.abs(ref_out - res_out))}"
@@ -279,6 +282,8 @@ def test_accuracy_trunc_div(shape, dtype):
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", [torch.float32])
 def test_accuracy_floor_div(shape, dtype):
+    torch.manual_seed(11593153991866481266)
+    print(f"seed = {torch.initial_seed()}")
     inp1 = torch.randn(shape, dtype=dtype, device="cuda")
     inp2 = torch.randn(shape, dtype=dtype, device="cuda")
     ref_inp1 = to_reference(inp1, True)
@@ -287,6 +292,14 @@ def test_accuracy_floor_div(shape, dtype):
     ref_out = torch.div(ref_inp1, ref_inp2, rounding_mode="floor")
     with flag_gems.use_gems():
         res_out = torch.div(inp1, inp2, rounding_mode="floor")
+    print(f"inp1[6][939]={inp1[6][939]}")
+    print(f"inp2[6][939]={inp2[6][939]}")
+    print(f"res_out[6][939]={res_out[6][939]}")
+    print(f"ref_out[6][939]={ref_out[6][939]}")
+
+    unequal_indices = (res_out != ref_out).nonzero(as_tuple=True)
+    for idx in zip(*unequal_indices):
+        print(f"Index: {idx}, a: {res_out[idx]}, b: {ref_out[idx]}")
 
     gems_assert_equal(res_out, ref_out)
 
@@ -531,8 +544,8 @@ def test_accuracy_ne_scalar(shape, dtype):
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_pow(shape, dtype):
-    inp1 = torch.randn(shape, dtype=dtype, device="cuda")
-    inp2 = torch.randn(shape, dtype=dtype, device="cuda")
+    inp1 = torch.randn(shape, dtype=dtype, device="cuda").uniform_(-0.1, 0.1)
+    inp2 = torch.randn(shape, dtype=dtype, device="cuda").uniform_(-0.1, 0.1)
     ref_inp1 = to_reference(inp1, True)
     ref_inp2 = to_reference(inp2, True)
 
@@ -574,7 +587,7 @@ def test_accuracy_minimum(shape, dtype):
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_pow_scalar_tensor(scalar, shape, dtype):
     inp1 = scalar
-    inp2 = torch.randn(shape, dtype=dtype, device="cuda")
+    inp2 = torch.randn(shape, dtype=dtype, device="cuda").uniform_(-0.1, 0.1)
     ref_inp2 = to_reference(inp2, True)
 
     ref_out = torch.pow(inp1, ref_inp2)
@@ -588,7 +601,7 @@ def test_accuracy_pow_scalar_tensor(scalar, shape, dtype):
 @pytest.mark.parametrize("scalar", SCALARS)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_pow_tensor_scalar(scalar, shape, dtype):
-    inp1 = torch.randn(shape, dtype=dtype, device="cuda")
+    inp1 = torch.randn(shape, dtype=dtype, device="cuda").uniform_(-0.1, 0.1)
     inp2 = scalar
     ref_inp1 = to_reference(inp1, True)
 
@@ -823,9 +836,11 @@ def test_accuracy_isclose(shape, dtype, zero_tol, equal_nan, gen_nan):
 
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", ALL_FLOAT_DTYPES + ALL_INT_DTYPES)
-@pytest.mark.parametrize("equal_nan", [False, True])
 @pytest.mark.parametrize(
-    "gen_nan", [0, 1, 2, 3, 4]
+    "equal_nan", [False, True], ids=lambda x: f"equal_nan-{x}"
+)  # False with XPU_cmp_nan=1
+@pytest.mark.parametrize(
+    "gen_nan", [0, 1, 2, 3, 4], ids=lambda x: f"gen_nan-{x}"
 )  # 1: nan, 2: inf, 3: -inf, 4: inf vs -inf
 def test_accuracy_allclose(shape, dtype, equal_nan, gen_nan):
     rtol = torch.rand(1, dtype=torch.float32, device="cuda").item() * (

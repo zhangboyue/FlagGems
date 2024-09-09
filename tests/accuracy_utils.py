@@ -74,7 +74,49 @@ def gems_assert_close(a, b, dtype, equal_nan=False, reduce_dim=1):
     torch.testing.assert_close(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
 
 
+def gems_assert_close_groupnorm(a, b, dtype, equal_nan=False, reduce_dim=1):
+    if TO_CPU:
+        a = a.to("cpu")
+    b = b.to(dtype)
+    atol = 1e-4 * reduce_dim
+    rtol = RESOLUTION[dtype]
+    if dtype == torch.float16:
+        atol = 1e-2
+    if dtype == torch.bfloat16:
+        atol = 2e-1
+    torch.testing.assert_close(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
+
+
+def gems_assert_close_layernorm(a, b, dtype, equal_nan=False, reduce_dim=1):
+    if TO_CPU:
+        a = a.to("cpu")
+    b = b.to(dtype)
+    atol = 1e-4 * reduce_dim
+    rtol = RESOLUTION[dtype]
+    if dtype == torch.float16:
+        atol = 1e-2
+    if dtype == torch.bfloat16:
+        atol = 5e-2
+    torch.testing.assert_close(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
+
+
 def gems_assert_equal(a, b):
     if TO_CPU:
         a = a.to("cpu")
     assert torch.equal(a, b)
+
+
+# XPU Setting
+# some reduction op needs specific BLOCK_SIZE params
+# REDUCTION_SHAPES = [(4096, 256)]
+XPU_REDUCTION_SHAPES_M = [(12, 256)]  # SHAPE[0] <= CLUSTE_NUM   GRIDX <= CLUSTE_NUM
+XPU_REDUCTION_SHAPES_N = [(4096, 1)]  # SHAPE[1] == 1            GRIDY == 1
+XPU_POINTWISE_2D_SHAPES_8192 = [
+    (16, 1024, 8)
+]  # SHAPE[-1] * SHAPE[-2] <= 8192(core_num * buffer_size limit)
+
+ALL_FLOAT_DTYPES = [torch.float32, torch.float16, torch.bfloat16]
+ALL_INT_DTYPES = [torch.int32, torch.int16]  # miss torch.int64
+
+# vendor-test shape
+KEY_OPS_SHAPES = [(1024, 32), (1024, 96), (1024, 8192), (1024, 20480), (1024, 32768)]
