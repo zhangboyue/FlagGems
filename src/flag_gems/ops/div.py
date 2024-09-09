@@ -12,7 +12,7 @@ except ImportError:
     try:
         from triton.language.math import div_rd, div_rz, trunc
     except ImportError:
-        from triton.language.libdevice import div_rd, div_rz, trunc
+        from triton.language.libdevice_xpu import div_rd, div_rz, trunc
 
 
 @pointwise_dynamic(promotion_methods=[(0, 1, "INT_TO_FLOAT")])
@@ -80,19 +80,19 @@ def trunc_divide(A, B):
 @pointwise_dynamic(promotion_methods=[(0, 1, "DEFAULT")])
 @triton.jit
 def floor_div_func(x, y):
-    return tl.math.floor(div_rd(x, y))
+    return tl.libdevice.floor(div_rd(x, y))
 
 
 @pointwise_dynamic(is_tensor=[True, False], promotion_methods=[(0, 1, "DEFAULT")])
 @triton.jit
 def floor_div_func_tensor_scalar(x, y):
-    return tl.math.floor(div_rd(x, y))
+    return tl.libdevice.floor(div_rd(x, y))
 
 
 @pointwise_dynamic(is_tensor=[False, True], promotion_methods=[(0, 1, "DEFAULT")])
 @triton.jit
 def floor_div_func_scalar_tensor(x, y):
-    return tl.math.floor(div_rd(x, y))
+    return tl.libdevice.floor(div_rd(x, y))
 
 
 def floor_divide(A, B):
