@@ -52,7 +52,10 @@ class Benchmark:
             normal_arg: "normal_arg",
             resolve_neg_arg: "resolve_neg_arg",
             resolve_conj_arg: "resolve_conj_arg",
+            skip_layernorm_args: "skip_layernorm_args",
+            skip_rmsnorm_args: "skip_rmsnorm_args",
         }
+
         self.kwags_func_map = {
             flip_kwargs: "flip_kwargs",
             rand_kwargs: "rand_kwargs",
@@ -68,6 +71,8 @@ class Benchmark:
         self.torch_op_map = {
             torch_op_gelu_and_mul: "torch_op_gelu_and_mul",
             torch_op_silu_and_mul: "torch_op_silu_and_mul",
+            torch_op_skip_layernorm: "torch_op_skip_layernorm",
+            torch_op_skip_rmsnorm: "torch_op_skip_rmsnorm",
         }
 
     def set_gems(self, gems_op):
@@ -131,12 +136,15 @@ import flag_gems
                 if self.torch_op_map.get(self.torch_op):
                     selfOpCode = f"{self.torch_op.__name__}"
                 else:
-                    selfOpCode = f"{self.torch_op.__module__}."
-                    if hasattr(self.torch_op, "__name__"):
-                        selfOpCode += f"{self.torch_op.__name__ }"
+                    if hasattr(self.torch_op, "__module__"):
+                        selfOpCode = f"{self.torch_op.__module__}."
+                        if hasattr(self.torch_op, "__name__"):
+                            selfOpCode += f"{self.torch_op.__name__ }"
+                        else:
+                            selfOpCode += f"{self.torch_op.__class__.__name__}"
                     else:
-                        selfOpCode += f"{self.torch_op.__class__.__name__}"
-
+                        selfOpCode = f"torch.Tensor.{self.torch_op.__name__}"
+                assert selfOpCode != ""
                 for func in self.arg_func_map.keys():
                     self.mock_code += f"\n{inspect.getsource(func)}"
 
@@ -197,6 +205,8 @@ INT_DTYPES = [torch.int16, torch.int32]
 DEFAULT_BATCH = 1
 POINTWISE_BATCH = 1024
 REDUCTION_BATCH = 1024
+XPU_POINTWISE_BATCH = 12
+XPU_REDUCTION_BATCH = 12
 BLAS_BATCH = 16
 SIZES = [i * 64 for i in range(1, 22, 5)]
 
@@ -370,3 +380,63 @@ def torch_op_gelu_and_mul(x, y):
 
 def torch_op_silu_and_mul(x, y):
     return torch.mul(torch.nn.functional.silu(x), y)
+
+
+def skip_layernorm_args(dtype, batch, size):
+    inp = torch.randn([batch, size], dtype=dtype, device="cuda")
+    residual = torch.randn([batch, size], dtype=dtype, device="cuda")
+    weight = torch.randn(
+        [
+            size,
+        ],
+        dtype=dtype,
+        device="cuda",
+    )
+    bias = torch.randn(
+        [
+            size,
+        ],
+        dtype=dtype,
+        device="cuda",
+    )
+    return (
+        inp,
+        residual,
+        [
+            size,
+        ],
+        weight,
+        bias,
+    )
+
+
+def torch_op_skip_layernorm(inp, residual, layer_shape, weight, bias):
+    return torch.layer_norm(inp + residual, layer_shape, weight, bias)
+
+
+def skip_rmsnorm_args(dtype, batch, size):
+    inp = torch.randn([batch, size], dtype=dtype, device="cuda")
+    residual = torch.randn([batch, size], dtype=dtype, device="cuda")
+    weight = torch.randn(
+        [
+            size,
+        ],
+        dtype=dtype,
+        device="cuda",
+    )
+    return (
+        inp,
+        residual,
+        [
+            size,
+        ],
+        weight,
+        1e-5,
+    )
+
+
+def torch_op_skip_rmsnorm(x, residual, layer_shape, weight, eps):
+    x = x + residual
+    variance = x.pow(2).mean(-1, keepdim=True)
+    hidden_states = x * torch.rsqrt(variance + eps)
+    return weight * hidden_states

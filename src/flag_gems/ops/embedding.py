@@ -121,7 +121,7 @@ class Embedding(torch.autograd.Function):
             (*indices.shape, N), device=indices.device, dtype=weight.dtype
         )
 
-        if M >= 12:
+        if M > 12:
             raise AssertionError(f"embedding_kernel M = {M}!")
         with torch.cuda.device(weight.device):
             embedding_kernel[M,](output, indices, weight, N, BLOCK_SIZE)

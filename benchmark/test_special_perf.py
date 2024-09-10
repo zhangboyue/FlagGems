@@ -5,6 +5,7 @@ from .performance_utils import (
     INT_DTYPES,
     POINTWISE_BATCH,
     SIZES,
+    XPU_POINTWISE_BATCH,
     Benchmark,
     arange_kwargs,
     embedding_kwargs,
@@ -22,7 +23,7 @@ def test_perf_embedding():
         dtypes=[
             torch.float32,
         ],  # Note(Zhengzekang): triton do not support bfloat16 atomic add which is used in embedding grad.
-        batch=POINTWISE_BATCH,
+        batch=XPU_POINTWISE_BATCH,
         sizes=SIZES,
         kwargs_func=embedding_kwargs,
     )
