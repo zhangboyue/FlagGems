@@ -7,12 +7,12 @@ import triton.language as tl
 from ..utils import pointwise_dynamic
 
 try:
-    from triton.language.extra.cuda.libdevice import erf, exp, pow, tanh
+    from triton.language.extra.cuda.libdevice import erf, pow, tanh
 except ImportError:
     try:
-        from triton.language.math import erf, exp, pow, tanh
+        from triton.language.math import erf, pow, tanh
     except ImportError:
-        from triton.language.libdevice_xpu import erf, exp, pow, tanh
+        from triton.language.libdevice_xpu import erf, pow, tanh
 
 
 @pointwise_dynamic(promotion_methods=[(0, "DEFAULT")])
@@ -39,7 +39,7 @@ def gelu_backward_none(x, dy):
     scale2: tl.constexpr = 0.3989422803  # 1 / math.sqrt(2 * math.pi)
     x_fp32 = x.to(tl.float32)
     dydx = (
-        scale2 * x_fp32 * exp(-pow(scale1 * x_fp32, 2))
+        scale2 * x_fp32 * tl.exp(-pow(scale1 * x_fp32, 2))
         + 0.5 * erf(scale1 * x_fp32)
         + 0.5
     )

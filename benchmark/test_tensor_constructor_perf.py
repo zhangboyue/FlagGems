@@ -5,9 +5,13 @@ from .performance_utils import (
     POINTWISE_BATCH,
     SIZES,
     Benchmark,
+    full_kwargs,
+    full_like_kwargs,
+    ones_kwargs,
     rand_kwargs,
     randn_kwargs,
     unary_arg,
+    zeros_kwargs,
 )
 
 
@@ -64,9 +68,6 @@ def test_perf_randn_like():
 
 
 def test_perf_ones():
-    def ones_kwargs(dtype, batch, size):
-        return {"size": (batch, size), "dtype": dtype, "device": "cuda"}
-
     bench = Benchmark(
         op_name="ones",
         torch_op=torch.ones,
@@ -80,9 +81,6 @@ def test_perf_ones():
 
 
 def test_perf_zeros():
-    def zeros_kwargs(dtype, batch, size):
-        return {"size": (batch, size), "dtype": dtype, "device": "cuda"}
-
     bench = Benchmark(
         op_name="zeros",
         torch_op=torch.zeros,
@@ -96,14 +94,6 @@ def test_perf_zeros():
 
 
 def test_perf_full():
-    def full_kwargs(dtype, batch, size):
-        return {
-            "size": (batch, size),
-            "fill_value": 3.1415926,
-            "dtype": dtype,
-            "device": "cuda",
-        }
-
     bench = Benchmark(
         op_name="full",
         torch_op=torch.full,
@@ -141,12 +131,6 @@ def test_perf_zeros_like():
 
 
 def test_perf_full_like():
-    def full_kwargs(dtype, batch, size):
-        return {
-            "input": torch.randn([batch, size], dtype=dtype, device="cuda"),
-            "fill_value": 3.1415926,
-        }
-
     bench = Benchmark(
         op_name="full_like",
         torch_op=torch.full_like,
@@ -154,6 +138,6 @@ def test_perf_full_like():
         dtypes=FLOAT_DTYPES,
         batch=POINTWISE_BATCH,
         sizes=SIZES,
-        kwargs_func=full_kwargs,
+        kwargs_func=full_like_kwargs,
     )
     bench.run()

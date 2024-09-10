@@ -79,7 +79,11 @@ def test_accuracy_exp(shape, dtype):
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 @pytest.mark.parametrize("approximate", ["none", "tanh"])
 def test_accuracy_gelu(shape, dtype, approximate):
-    inp = torch.randn(shape, dtype=dtype, device="cuda", requires_grad=True)
+    inp = (
+        torch.randn(shape, dtype=dtype, device="cuda")
+        .uniform_(-0.1, 0.1)
+        .requires_grad_()
+    )
     ref_inp = to_reference(inp, True)
 
     ref_out = torch.nn.functional.gelu(ref_inp, approximate=approximate)

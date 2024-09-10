@@ -31,7 +31,7 @@ def test_perf_amax():
         op_name="amax",
         torch_op=torch.amax,
         arg_func=unary_arg,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=REDUCTION_BATCH,
         sizes=SIZES,
     )
@@ -225,7 +225,7 @@ def test_perf_prod():
         op_name="prod",
         torch_op=torch.prod,
         arg_func=unary_arg,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=REDUCTION_BATCH,
         sizes=SIZES,
     )

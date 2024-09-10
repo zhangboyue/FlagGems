@@ -31,8 +31,11 @@ def arange_start(
     else:
         size = math.ceil((end - start) / step)
 
-    BLOCK_SIZE = 128
-    grid = triton.cdiv(size, BLOCK_SIZE)
+    # BLOCK_SIZE = 128
+    # grid = triton.cdiv(size, BLOCK_SIZE)
+    # vvv
+    grid = 12
+    BLOCK_SIZE = triton.next_power_of_2(triton.cdiv(size, grid))
 
     if dtype is None:
         dtype = torch.int64

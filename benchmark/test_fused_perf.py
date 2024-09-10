@@ -9,18 +9,17 @@ from .performance_utils import (
     SIZES,
     Benchmark,
     binary_args,
+    torch_op_gelu_and_mul,
+    torch_op_silu_and_mul,
 )
 
 
 def test_perf_gelu_and_mul():
-    def torch_op(x, y):
-        return torch.mul(torch.nn.functional.gelu(x), y)
-
     gems_op = flag_gems.gelu_and_mul
 
     bench = Benchmark(
         op_name="gelu_and_mul",
-        torch_op=torch_op,
+        torch_op=torch_op_gelu_and_mul,
         arg_func=binary_args,
         dtypes=FLOAT_DTYPES,
         batch=POINTWISE_BATCH,
@@ -31,14 +30,11 @@ def test_perf_gelu_and_mul():
 
 
 def test_perf_silu_and_mul():
-    def torch_op(x, y):
-        return torch.mul(torch.nn.functional.silu(x), y)
-
     gems_op = flag_gems.silu_and_mul
 
     bench = Benchmark(
         op_name="silu_and_mul",
-        torch_op=torch_op,
+        torch_op=torch_op_silu_and_mul,
         arg_func=binary_args,
         dtypes=FLOAT_DTYPES,
         batch=POINTWISE_BATCH,

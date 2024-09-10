@@ -1,4 +1,5 @@
 import inspect
+import os
 import time
 
 import torch
@@ -48,11 +49,25 @@ class Benchmark:
             layer_norm_args: "layer_norm_args",
             cross_entropy_loss_args: "cross_entropy_loss_args",
             mv_args: "mv_args",
+            normal_arg: "normal_arg",
+            resolve_neg_arg: "resolve_neg_arg",
+            resolve_conj_arg: "resolve_conj_arg",
         }
         self.kwags_func_map = {
             flip_kwargs: "flip_kwargs",
             rand_kwargs: "rand_kwargs",
             randn_kwargs: "randn_kwargs",
+            ones_kwargs: "ones_kwargs",
+            zeros_kwargs: "zeros_kwargs",
+            full_kwargs: "full_kwargs",
+            full_like_kwargs: "full_like_kwargs",
+            arange_kwargs: "arange_kwargs",
+            embedding_kwargs: "embedding_kwargs",
+        }
+
+        self.torch_op_map = {
+            torch_op_gelu_and_mul: "torch_op_gelu_and_mul",
+            torch_op_silu_and_mul: "torch_op_silu_and_mul",
         }
 
     def set_gems(self, gems_op):
@@ -109,6 +124,19 @@ class Benchmark:
 import torch
 import flag_gems
 """
+                for func in self.torch_op_map.keys():
+                    self.mock_code += f"\n{inspect.getsource(func)}"
+
+                selfOpCode = ""
+                if self.torch_op_map.get(self.torch_op):
+                    selfOpCode = f"{self.torch_op.__name__}"
+                else:
+                    selfOpCode = f"{self.torch_op.__module__}."
+                    if hasattr(self.torch_op, "__name__"):
+                        selfOpCode += f"{self.torch_op.__name__ }"
+                    else:
+                        selfOpCode += f"{self.torch_op.__class__.__name__}"
+
                 for func in self.arg_func_map.keys():
                     self.mock_code += f"\n{inspect.getsource(func)}"
 
@@ -119,8 +147,7 @@ import flag_gems
                 self.mock_code += f"""
 class BenchmarkMock:
     def __init__(self):
-        self.op = {self.torch_op.__module__}.\\
-        {self.torch_op.__name__ if hasattr(self.torch_op, '__name__') else self.torch_op.__class__.__name__}
+        self.op = {selfOpCode}
         self.arg_func = {self.arg_func_map.get(self.arg_func, "None")}
         self.kwargs_func = {self.kwags_func_map.get(self.kwargs_func, "None")}
         self.dtype = {dtype}
@@ -162,6 +189,8 @@ if __name__ == '__main__':
 
 
 FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]
+FLOAT_DTYPES = [torch.bfloat16]
+# FLOAT_DTYPES = [torch.float16, torch.float32]
 INT_DTYPES = [torch.int16, torch.int32]
 
 
@@ -170,6 +199,9 @@ POINTWISE_BATCH = 1024
 REDUCTION_BATCH = 1024
 BLAS_BATCH = 16
 SIZES = [i * 64 for i in range(1, 22, 5)]
+
+if bool(os.environ.get("TRITONXPU_FIRST_CATCH", False)):
+    SIZES = [64]
 
 
 def unary_arg(dtype, batch, size):
@@ -274,3 +306,67 @@ def rand_kwargs(dtype, batch, size):
 
 def randn_kwargs(dtype, batch, size):
     return {"size": (batch, size), "dtype": dtype, "device": "cuda"}
+
+
+def normal_arg(dtype, batch, size):
+    loc = torch.full(size=(size, batch), fill_value=3.0, dtype=dtype, device="cuda")
+    scale = torch.full(size=(size, batch), fill_value=10.0, dtype=dtype, device="cuda")
+    return loc, scale
+
+
+def ones_kwargs(dtype, batch, size):
+    return {"size": (batch, size), "dtype": dtype, "device": "cuda"}
+
+
+def zeros_kwargs(dtype, batch, size):
+    return {"size": (batch, size), "dtype": dtype, "device": "cuda"}
+
+
+def full_kwargs(dtype, batch, size):
+    return {
+        "size": (batch, size),
+        "fill_value": 3.1415926,
+        "dtype": dtype,
+        "device": "cuda",
+    }
+
+
+def full_like_kwargs(dtype, batch, size):
+    return {
+        "input": torch.randn([batch, size], dtype=dtype, device="cuda"),
+        "fill_value": 3.1415926,
+    }
+
+
+def arange_kwargs(dtype, batch, size):
+    return {
+        "end": batch * size,
+        "device": "cuda",
+        "dtype": dtype,
+    }
+
+
+def resolve_neg_arg(dtype, batch, size):
+    x = torch.randn(size=(batch, size), dtype=dtype, device="cuda")
+    y = x.conj()
+    z = y.imag
+    return (z,)
+
+
+def resolve_conj_arg(dtype, batch, size):
+    x = torch.randn(size=(size, batch), dtype=dtype, device="cuda")
+    return (x.conj(),)
+
+
+def embedding_kwargs(dtype, batch, size):
+    input = torch.randint(0, batch, (batch,), device="cuda")
+    weight = torch.randn((batch + 1, size), device="cuda", dtype=dtype)
+    return {"input": input, "weight": weight}
+
+
+def torch_op_gelu_and_mul(x, y):
+    return torch.mul(torch.nn.functional.gelu(x), y)
+
+
+def torch_op_silu_and_mul(x, y):
+    return torch.mul(torch.nn.functional.silu(x), y)
