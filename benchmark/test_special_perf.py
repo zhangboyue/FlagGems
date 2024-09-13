@@ -8,6 +8,7 @@ from .performance_utils import (
     XPU_POINTWISE_BATCH,
     Benchmark,
     arange_kwargs,
+    binary_int_args,
     embedding_kwargs,
     resolve_conj_arg,
     resolve_neg_arg,
@@ -138,5 +139,38 @@ def test_perf_arange():
         batch=POINTWISE_BATCH,
         sizes=SIZES,
         kwargs_func=arange_kwargs,
+    )
+    bench.run()
+
+
+def test_perf_isin():
+    bench = Benchmark(
+        op_name="isin",
+        torch_op=torch.isin,
+        arg_func=binary_int_args,
+        dtypes=INT_DTYPES,
+        batch=POINTWISE_BATCH,
+        sizes=SIZES,
+    )
+    bench.run()
+
+
+def test_perf_fill():
+    def fill_kwargs(dtype, batch, size):
+        value = 1.0
+        input = torch.empty(batch * size, dtype=dtype, device="cuda")
+        return {
+            "input": input,
+            "value": value,
+        }
+
+    bench = Benchmark(
+        op_name="fill",
+        torch_op=torch.fill,
+        arg_func=None,
+        dtypes=FLOAT_DTYPES,
+        batch=POINTWISE_BATCH,
+        sizes=SIZES,
+        kwargs_func=fill_kwargs,
     )
     bench.run()
