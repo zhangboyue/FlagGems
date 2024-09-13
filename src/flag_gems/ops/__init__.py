@@ -34,6 +34,7 @@ from .ge import ge, ge_scalar
 from .gelu import gelu
 from .groupnorm import group_norm
 from .gt import gt, gt_scalar
+from .hstack import hstack
 from .index_select import index_select
 from .isclose import allclose, isclose
 from .isfinite import isfinite
@@ -229,4 +230,6 @@ __all__ = [
     "nonzero",
     "repeat",
     "masked_select",
+    "stack",
+    "hstack",
 ]
