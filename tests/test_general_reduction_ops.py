@@ -8,10 +8,9 @@ from .accuracy_utils import (
     REDUCTION_SHAPES,
     REDUCTION_SMALL_SHAPES,
     XPU_REDUCTION_SHAPES_N,
+    SkipTorchVersion,
     gems_assert_close,
     gems_assert_equal,
-    skip_expr,
-    skip_reason,
     to_reference,
 )
 from .conftest import TO_CPU
@@ -54,7 +53,7 @@ def test_accuracy_all_without_dim(shape, dtype, kind):
     gems_assert_equal(res_out, ref_out)
 
 
-@pytest.mark.skipif(skip_expr, reason=skip_reason)
+@pytest.mark.skipif(SkipTorchVersion("<2.2"), reason="Skipping Pytorch version.")
 @pytest.mark.parametrize("kind, keepdim, dim, shape", KIND_KEEPDIM_DIMS_SHAPE)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES + [torch.bool])
 def test_accuracy_all_dims(shape, dim, keepdim, dtype, kind):
@@ -88,7 +87,7 @@ def test_accuracy_any_without_dim(shape, dtype, kind):
     gems_assert_equal(res_out, ref_out)
 
 
-@pytest.mark.skipif(skip_expr, reason=skip_reason)
+@pytest.mark.skipif(SkipTorchVersion("<2.2"), reason="Skipping Pytorch version.")
 @pytest.mark.parametrize("kind, keepdim, dim, shape", KIND_KEEPDIM_DIMS_SHAPE)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES + [torch.bool])
 def test_accuracy_any_dims(shape, dim, keepdim, dtype, kind):
