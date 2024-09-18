@@ -19,6 +19,7 @@ from .accuracy_utils import (
 )
 
 
+@pytest.mark.abs
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_abs(shape, dtype):
@@ -32,6 +33,7 @@ def test_accuracy_abs(shape, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.bitwise_not
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", INT_DTYPES + BOOL_TYPES)
 def test_accuracy_bitwisenot(shape, dtype):
@@ -50,6 +52,7 @@ def test_accuracy_bitwisenot(shape, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.cos
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_cos(shape, dtype):
@@ -63,6 +66,7 @@ def test_accuracy_cos(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype)
 
 
+@pytest.mark.exp
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_exp(shape, dtype):
@@ -76,6 +80,7 @@ def test_accuracy_exp(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype)
 
 
+@pytest.mark.gelu
 # @pytest.mark.parametrize("shape", KEY_OPS_SHAPES)
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
@@ -102,6 +107,7 @@ def test_accuracy_gelu(shape, dtype, approximate):
     gems_assert_close(res_in_grad, ref_in_grad, dtype)
 
 
+@pytest.mark.isinf
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_isinf(shape, dtype):
@@ -116,6 +122,7 @@ def test_accuracy_isinf(shape, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.isnan
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_isnan(shape, dtype):
@@ -130,6 +137,7 @@ def test_accuracy_isnan(shape, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.neg
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_neg(shape, dtype):
@@ -143,6 +151,7 @@ def test_accuracy_neg(shape, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.reciprocal
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_reciprocal(shape, dtype):
@@ -156,6 +165,7 @@ def test_accuracy_reciprocal(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype, equal_nan=True)
 
 
+@pytest.mark.relu
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_relu(shape, dtype):
@@ -176,6 +186,7 @@ def test_accuracy_relu(shape, dtype):
     gems_assert_close(res_in_grad, ref_in_grad, dtype)
 
 
+@pytest.mark.rsqrt
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_rsqrt(shape, dtype):
@@ -189,6 +200,7 @@ def test_accuracy_rsqrt(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype, equal_nan=True)
 
 
+@pytest.mark.sigmoid
 # @pytest.mark.parametrize("shape", KEY_OPS_SHAPES)
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
@@ -210,6 +222,7 @@ def test_accuracy_sigmoid(shape, dtype):
     gems_assert_close(res_in_grad, ref_in_grad, dtype)
 
 
+@pytest.mark.silu
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_silu(shape, dtype):
@@ -230,6 +243,7 @@ def test_accuracy_silu(shape, dtype):
     gems_assert_close(res_in_grad, ref_in_grad, dtype)
 
 
+@pytest.mark.sin
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_sin(shape, dtype):
@@ -243,6 +257,7 @@ def test_accuracy_sin(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype)
 
 
+@pytest.mark.tanh
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_tanh(shape, dtype):
@@ -263,9 +278,11 @@ def test_accuracy_tanh(shape, dtype):
     gems_assert_close(res_in_grad, ref_in_grad, dtype)
 
 
-@pytest.mark.parametrize(
-    "shape, diagonal", list(zip(POINTWISE_SHAPES, [-2, -1, 0, 1, 3]))
-)
+SHAPE_DIAGONAL = list(zip(POINTWISE_SHAPES, [-2, -2, -1, 0, 1, 3]))
+
+
+@pytest.mark.triu
+@pytest.mark.parametrize("shape, diagonal", SHAPE_DIAGONAL)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_triu(shape, diagonal, dtype):
     if shape[-1] * shape[-2] > 8192:  # core_num * buffer_size limit
@@ -282,6 +299,7 @@ def test_accuracy_triu(shape, diagonal, dtype):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.erf
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_erf(shape, dtype):
@@ -295,6 +313,7 @@ def test_accuracy_erf(shape, dtype):
     gems_assert_close(res_out, ref_out, dtype)
 
 
+@pytest.mark.isfinite
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", ALL_FLOAT_DTYPES + ALL_INT_DTYPES)
 def test_accuracy_isfinite(shape, dtype):
@@ -325,6 +344,7 @@ def get_max_ndim(shape, dims):
 FLIP_DIMS = [(0,), (-2,), (2,), (0, 2), (2, 1), (0, -1, 1)]
 
 
+@pytest.mark.flip
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 @pytest.mark.parametrize("dims", FLIP_DIMS)
@@ -344,6 +364,7 @@ def test_accuracy_flip_general(shape, dtype, dims):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.flip
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", ALL_FLOAT_DTYPES + ALL_INT_DTYPES)
 @pytest.mark.parametrize("dims", FLIP_DIMS)
@@ -366,6 +387,7 @@ def test_accuracy_flip_with_non_dense_input(shape, dtype, dims):
     gems_assert_equal(res_out, ref_out)
 
 
+@pytest.mark.masked_fill
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
@@ -386,6 +408,7 @@ def test_accuracy_masked_fill(shape, dtype, threshold):
 TILE_DIMS = [(0,), (2,), (2, 0), (0, 2), (2, 2), (2, 2, 2), (2, 2, 2, 2)]
 
 
+@pytest.mark.tile
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dims", TILE_DIMS)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
@@ -403,6 +426,7 @@ def test_accuracy_tile(shape, dims, dtype):
 REPEAT_SIZES = [(2, 3, 4, 5), (5, 0, 4)]
 
 
+@pytest.mark.repeat
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("sizes", REPEAT_SIZES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)

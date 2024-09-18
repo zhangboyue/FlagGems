@@ -115,10 +115,11 @@ class Benchmark:
         return latency
 
     def run(self):
-        print(f"{self.op_name}")
-        for size in self.sizes:
-            print(f"{size}", end="")
-            for dtype in self.dtypes:
+        for dtype in self.dtypes:
+            print(f"Operator {self.op_name} Performance Test ({dtype})")
+            print("Size    Torch Latency (ms)    Gems Latency (ms)    Gems Speedup")
+            print("---------------------------------------------------------------")
+            for size in self.sizes:
                 args = ()
                 if self.arg_func is not None:
                     args = self.arg_func(dtype, self.batch, size)
@@ -221,8 +222,10 @@ if __name__ == '__main__':
                     self.mock_code = "use_gems=True\n" + self.mock_code
                     with flag_gems.use_gems():
                         gems_perf = self.profile(self.torch_op, *args, **kwargs)
-                print(f", {torch_perf}, {gems_perf}", end="")
-            print()
+                speedup = torch_perf / gems_perf
+                print(
+                    f"{size: <8}{torch_perf: >18.6}{gems_perf: >21.6}{speedup: >16.3}"
+                )
 
 
 FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]
