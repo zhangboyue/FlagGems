@@ -64,7 +64,7 @@ def test_perf_argmax():
 
 def test_perf_cross_entropy_loss():
     bench = Benchmark(
-        op_name="cross_entropy_loss",
+        op_name="CrossEntropyLoss",
         torch_op=torch.nn.CrossEntropyLoss(),
         arg_func=cross_entropy_loss_args,
         dtypes=FLOAT_DTYPES,
