@@ -1,3 +1,5 @@
+import torch
+
 import flag_gems
 
 from .performance_utils import (
@@ -53,7 +55,7 @@ def test_perf_skip_layernorm():
         op_name="skip_layernorm",
         torch_op=torch_op_skip_layernorm,
         arg_func=skip_layernorm_args,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float32, torch.bfloat16],
         batch=XPU_REDUCTION_BATCH,
         sizes=SIZES,
     )

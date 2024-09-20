@@ -38,6 +38,13 @@ class Benchmark:
         self.gems_op = None
         self.is_backward = is_backward
         self.mock_code = ""
+        self.gems_op_map = {
+            flag_gems.gelu_and_mul: "flag_gems.gelu_and_mul",
+            flag_gems.skip_layer_norm: "flag_gems.skip_layer_norm",
+            flag_gems.silu_and_mul: "flag_gems.silu_and_mul",
+            flag_gems.skip_rms_norm: "flag_gems.skip_rms_norm",
+        }
+
         self.arg_func_map = {
             binary_args: "binary_args",
             binary_int_args: "binary_int_args",
@@ -66,6 +73,7 @@ class Benchmark:
             full_like_kwargs: "full_like_kwargs",
             arange_kwargs: "arange_kwargs",
             embedding_kwargs: "embedding_kwargs",
+            fill_kwargs: "fill_kwargs",
         }
 
         self.torch_op_map = {
@@ -125,37 +133,54 @@ class Benchmark:
                 kwargs = {}
                 if self.kwargs_func is not None:
                     kwargs = self.kwargs_func(dtype, self.batch, size)
+
+                def getMapCode():
+                    mapCode = ""
+                    if self.gems_op is not None:
+                        mapCode += f" {self.gems_op_map.get(self.gems_op)}\n"
+
+                    for func in self.torch_op_map.keys():
+                        mapCode += f"\n{inspect.getsource(func)}"
+
+                    for func in self.arg_func_map.keys():
+                        mapCode += f"\n{inspect.getsource(func)}"
+
+                    for func in self.kwags_func_map.keys():
+                        mapCode += f"\n{inspect.getsource(func)}"
+
+                    return mapCode
+
+                def getTorchOpDesc():
+                    torchOpDesc = ""
+                    if self.torch_op_map.get(self.torch_op):
+                        torchOpDesc = f"{self.torch_op.__name__}"
+                    else:
+                        if hasattr(self.torch_op, "__module__"):
+                            torchOpDesc = f"{self.torch_op.__module__}."
+                            if hasattr(self.torch_op, "__name__"):
+                                torchOpDesc += f"{self.torch_op.__name__ }"
+                            else:
+                                torchOpDesc += f"{self.torch_op.__class__.__name__}"
+                        else:
+                            torchOpDesc = f"torch.Tensor.{self.torch_op.__name__}"
+                    assert torchOpDesc != ""
+                    return torchOpDesc
+
                 self.mock_code = """
 import torch
 import flag_gems
-"""
-                for func in self.torch_op_map.keys():
-                    self.mock_code += f"\n{inspect.getsource(func)}"
+gems_op = """
+                self.mock_code += getMapCode()
 
-                selfOpCode = ""
-                if self.torch_op_map.get(self.torch_op):
-                    selfOpCode = f"{self.torch_op.__name__}"
-                else:
-                    if hasattr(self.torch_op, "__module__"):
-                        selfOpCode = f"{self.torch_op.__module__}."
-                        if hasattr(self.torch_op, "__name__"):
-                            selfOpCode += f"{self.torch_op.__name__ }"
-                        else:
-                            selfOpCode += f"{self.torch_op.__class__.__name__}"
-                    else:
-                        selfOpCode = f"torch.Tensor.{self.torch_op.__name__}"
-                assert selfOpCode != ""
-                for func in self.arg_func_map.keys():
-                    self.mock_code += f"\n{inspect.getsource(func)}"
-
-                # 添加 kwags_func_map 的函数源代码
-                for func in self.kwags_func_map.keys():
-                    self.mock_code += f"\n{inspect.getsource(func)}"
+                torchOpDesc = getTorchOpDesc()
 
                 self.mock_code += f"""
 class BenchmarkMock:
     def __init__(self):
-        self.op = {selfOpCode}
+        if 'use_gems' in globals():
+            self.op = gems_op
+        else:
+            self.op = {torchOpDesc}
         self.arg_func = {self.arg_func_map.get(self.arg_func, "None")}
         self.kwargs_func = {self.kwags_func_map.get(self.kwargs_func, "None")}
         self.dtype = {dtype}
@@ -185,22 +210,23 @@ def main():
 if __name__ == '__main__':
     main()
                 """
+
                 torch_perf = self.profile(self.torch_op, *args, **kwargs)
                 if self.gems_op:
+                    self.mock_code = "use_gems=True\n" + self.mock_code
                     gems_perf = self.profile(self.gems_op, *args, **kwargs)
+                    # print(self.mock_code)
+                    # exit()
                 else:
+                    self.mock_code = "use_gems=True\n" + self.mock_code
                     with flag_gems.use_gems():
-                        self.mock_code = "use_gems=True\n" + self.mock_code
                         gems_perf = self.profile(self.torch_op, *args, **kwargs)
                 print(f", {torch_perf}, {gems_perf}", end="")
             print()
 
 
 FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]
-FLOAT_DTYPES = [torch.bfloat16]
-# FLOAT_DTYPES = [torch.float16, torch.float32]
 INT_DTYPES = [torch.int16, torch.int32]
-
 
 DEFAULT_BATCH = 1
 POINTWISE_BATCH = 1024
@@ -456,3 +482,12 @@ def torch_op_skip_rmsnorm(x, residual, layer_shape, weight, eps):
     variance = x.pow(2).mean(-1, keepdim=True)
     hidden_states = x * torch.rsqrt(variance + eps)
     return weight * hidden_states
+
+
+def fill_kwargs(dtype, batch, size):
+    value = 1.0
+    input = torch.empty(batch * size, dtype=dtype, device="cuda")
+    return {
+        "input": input,
+        "value": value,
+    }

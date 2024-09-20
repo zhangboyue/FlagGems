@@ -18,9 +18,9 @@ def launch_arg(BLOCK_M, BLOCK_N, N, num_warps):
 @triton.jit
 def isin_by_comparation_impl(
     global_pid,
-    in0_ravel_ptr: tl.tensor,
-    in1_ravel_ptr: tl.tensor,  # in
-    out_ptr: tl.tensor,  # out
+    in0_ravel_ptr,
+    in1_ravel_ptr,  # in
+    out_ptr,  # out
     M: int,  # num_tasks
     N: int,  # num_tasks_1
     BLOCK_M: tl.constexpr,  # tile_size
@@ -53,9 +53,9 @@ def isin_by_comparation_impl(
 @libentry()
 @triton.jit
 def isin_by_comparation_kernel(
-    in0_ravel_ptr: tl.tensor,
-    in1_ravel_ptr: tl.tensor,  # in
-    out_ptr: tl.tensor,  # out
+    in0_ravel_ptr,
+    in1_ravel_ptr,  # in
+    out_ptr,  # out
     M: int,  # num_tasks
     N: int,  # num_tasks_1
     BLOCK_M: tl.constexpr,  # tile_size
@@ -123,9 +123,9 @@ def isin_by_comparation(
 @triton.jit
 def isin_by_search_impl(
     global_pid,
-    in0_ravel_ptr: tl.tensor,
-    in1_sorted_ptr: tl.tensor,  # in
-    out_ptr: tl.tensor,  # out
+    in0_ravel_ptr,
+    in1_sorted_ptr,  # in
+    out_ptr,  # out
     M: int,  # num_tasks
     N: int,  # num_tasks_1
     log_n: tl.constexpr,
@@ -159,9 +159,9 @@ def isin_by_search_impl(
 @libentry()
 @triton.jit
 def isin_by_search_kernel(
-    in0_ravel_ptr: tl.tensor,
-    in1_sorted_ptr: tl.tensor,  # in
-    out_ptr: tl.tensor,  # out
+    in0_ravel_ptr,
+    in1_sorted_ptr,  # in
+    out_ptr,  # out
     M: int,  # num_tasks
     N: int,  # num_tasks_1
     log_n: tl.constexpr,

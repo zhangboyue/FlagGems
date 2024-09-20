@@ -11,7 +11,7 @@ from ..utils import libentry
 @triton.jit(do_not_specialize=["value_scalar"])
 def fill_scalar_kernel(
     out_ptr,
-    N,
+    N: tl.constexpr,
     value_scalar,
     BLOCK_SIZE: tl.constexpr,
 ):
@@ -25,7 +25,7 @@ def fill_scalar_kernel(
 @triton.jit
 def fill_tensor_kernel(
     out_ptr,
-    N,
+    N: tl.constexpr,
     value_ptr,
     BLOCK_SIZE: tl.constexpr,
 ):
@@ -40,7 +40,9 @@ def fill_tensor(input, value):
     logging.debug("GEMS FILL")
     out = torch.empty_like(input)
     N = out.numel()
-    BLOCK_SIZE = 512
+    # BLOCK_SIZE = 512
+    block_num = 12  # CLUSTER_NUM
+    BLOCK_SIZE = triton.next_power_of_2(triton.cdiv(N, block_num))
     grid = triton.cdiv(N, BLOCK_SIZE)
 
     with torch.cuda.device(input.device):
@@ -52,7 +54,9 @@ def fill_scalar(input, value):
     logging.debug("GEMS FILL")
     out = torch.empty_like(input)
     N = out.numel()
-    BLOCK_SIZE = 512
+    # BLOCK_SIZE = 512
+    block_num = 12  # CLUSTER_NUM
+    BLOCK_SIZE = triton.next_power_of_2(triton.cdiv(N, block_num))
     grid = triton.cdiv(N, BLOCK_SIZE)
 
     with torch.cuda.device(input.device):

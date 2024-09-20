@@ -16,8 +16,17 @@ def cfggen():
     return configs
 
 
+def heur_block_size(args):
+    return triton.next_power_of_2(triton.cdiv(args["n_elements"], 12))
+
+
 @libentry()
-@triton.autotune(configs=cfggen(), key=["n_elements"])
+# @triton.autotune(configs=cfggen(), key=["n_elements"])
+@triton.heuristics(
+    values={
+        "BLOCK_SIZE": heur_block_size,
+    },
+)
 @triton.jit
 def masked_select_kernel(
     inp_ptr,
