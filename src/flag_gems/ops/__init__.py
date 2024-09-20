@@ -89,6 +89,7 @@ from .sigmoid import sigmoid
 from .silu import silu
 from .sin import sin
 from .softmax import softmax
+from .stack import stack
 from .sub import sub
 from .sum import sum, sum_dim
 from .tanh import tanh

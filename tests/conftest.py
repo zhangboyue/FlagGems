@@ -8,7 +8,7 @@ def pytest_addoption(parser):
         help="device to run reference tests on",
     )
     parser.addoption(
-        "--mode",
+        "--fg_mode",
         action="store",
         default="normal",
         required=False,
@@ -22,4 +22,4 @@ def pytest_configure(config):
     TO_CPU = config.getoption("--ref") == "cpu"
 
     global QUICK_MODE
-    QUICK_MODE = config.getoption("--mode") == "quick"
+    QUICK_MODE = config.getoption("--fg_mode") == "quick"
