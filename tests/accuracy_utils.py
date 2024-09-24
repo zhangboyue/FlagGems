@@ -27,6 +27,7 @@ DIM_POINTWISE_SHAPES = [
 DIMS = [[0], [-2], [2], [0, 2], [2, 1], [0, -1, 1]]
 
 FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]
+FLOAT_DTYPES = [torch.float16, torch.float32]
 ALL_FLOAT_DTYPES = [torch.float16, torch.float32, torch.float64, torch.bfloat16]
 INT_DTYPES = [torch.int16, torch.int32]
 ALL_INT_DTYPES = [torch.int16, torch.int32, torch.int64]

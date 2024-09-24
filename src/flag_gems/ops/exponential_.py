@@ -88,7 +88,7 @@ def paste_u64(hi, lo):  # sig err
 def transform_exponential(u, lambd, eps):
     eps1 = -0.5 * eps
     is_min = u >= 1.0 + eps1
-    log = tl.where(is_min, eps1, tl.libdevice.log2(u))
+    log = tl.where(is_min, eps1, tl.extra.xpu.libdevice.log2(u))
     v = -1.0 / lambd * log
     return v
 

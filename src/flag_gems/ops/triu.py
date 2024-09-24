@@ -64,7 +64,7 @@ def heur_batch_block_size(args):
 
 
 def heur_mn_block_size(args):
-    return args["MN"]
+    return triton.next_power_of_2(args["MN"])
 
 
 @libentry()

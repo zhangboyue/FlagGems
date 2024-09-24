@@ -27,7 +27,7 @@ def prod_kernel_mid(
     inp_ptrs = inp + offset
     mask = offset < M
     inp_val = tl.load(inp_ptrs, mask=mask, other=1.0).to(tl.float32)
-    mid_value = tl.prod(inp_val, axis=0)
+    mid_value = tl.reduce(inp_val, axis=0, combine_fn=reduce_mul)
     mid_ptr = mid + pid
     tl.store(mid_ptr, mid_value.to(inp_val.dtype))
 
@@ -39,7 +39,7 @@ def prod_kernel_result(mid, out, mid_size, BLOCK_MID: tl.constexpr):
     mid_ptrs = mid + offset
     mask = offset < mid_size
     mid_val = tl.load(mid_ptrs, mask=mask, other=1.0).to(tl.float32)
-    prod_val = tl.prod(mid_val, axis=0)
+    prod_val = tl.reduce(mid_val, axis=0, combine_fn=reduce_mul)
     tl.store(out, prod_val)
 
 
@@ -51,15 +51,15 @@ def prod(inp, *, dtype=None):
     M = inp.numel()
     # block_size = triton.next_power_of_2(math.ceil(math.sqrt(M)))
     # mid_size = triton.cdiv(M, block_size)
-    mid_size = 12  # CLUSTER_NUM
+    mid_size = 8  # CLUSTER_NUM
     block_size = triton.next_power_of_2(triton.cdiv(M, mid_size))
     block_mid = triton.next_power_of_2(mid_size)
-
-    mid = torch.empty((mid_size,), dtype=dtype, device=inp.device).to(torch.float32)
-    out = torch.empty([], dtype=dtype, device=inp.device)
     final_mid_size = builtins.min(
         math.ceil(inp.numel() / block_size), builtins.min(mid_size, inp.numel())
     )
+
+    mid = torch.empty((mid_size,), dtype=dtype, device=inp.device)
+    out = torch.empty([], dtype=dtype, device=inp.device)
 
     with torch.cuda.device(inp.device):
         prod_kernel_mid[(mid_size, 1, 1)](inp, mid, M, block_size)
@@ -74,7 +74,7 @@ def heur_block_n(args):
 @libentry()
 @triton.autotune(
     configs=[
-        triton.Config({"BLOCK_M": 512}, num_warps=8, num_stages=5),
+        triton.Config({"BLOCK_M": 512}, num_warps=8),
     ],
     key=[
         "M",
@@ -108,7 +108,7 @@ def prod_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     inp_ptrs = inp + offset
     inp_vals = tl.load(inp_ptrs, mask=mask, other=1.0).to(tl.float32)
-    result_index = tl.prod(inp_vals, axis=1)
+    result_index = tl.reduce(inp_vals, axis=1, combine_fn=reduce_mul)
 
     out_ptrs = out + offset_index
     tl.store(out_ptrs, result_index, mask=mask1)

@@ -69,7 +69,7 @@ def all_kernel_1(
     inp_ptrs = inp + offset
     mask = offset < n_elements
     inp_val = tl.load(inp_ptrs, mask=mask, other=1.0)
-    all_val = tl.all(inp_val != 0, axis=0)
+    all_val = tl.reduce(inp_val != 0, axis=0, combine_fn=reduce_all)
     mid_ptr = mid + pid
     tl.store(mid_ptr, all_val)
 
@@ -81,67 +81,29 @@ def all_kernel_2(mid, out, MID_SIZE, BLOCK_MID: tl.constexpr):
     mid_ptrs = mid + offset
     mask = offset < MID_SIZE
     mid_val = tl.load(mid_ptrs, mask=mask, other=1).to(tl.int1)
-    all_val = tl.all(mid_val, axis=0)
-    tl.store(out, all_val)
-
-
-@libentry()
-@triton.jit
-def all_kernel_1_bool(
-    inp,
-    mid,
-    n_elements,
-    mid_size,
-    BLOCK_SIZE: tl.constexpr,
-):
-    pid = tl.program_id(0)
-    offset = pid * BLOCK_SIZE
-    all_val = True
-    for roffset in range(0, BLOCK_SIZE, 1):
-        inp_ptrs = inp + offset + roffset
-        mask = (offset + roffset) < n_elements
-        inp_val = tl.load(inp_ptrs, mask=mask, other=1.0)
-        float_mask = inp_val != 0.0
-        all_val = all_val and float_mask
-    mid_ptr = mid + pid
-    tl.store(mid_ptr, all_val)
-
-
-@libentry()
-@triton.jit
-def all_kernel_2_bool(mid, out, MID_SIZE, BLOCK_MID: tl.constexpr):
-    all_val = True
-    for roffset in range(0, MID_SIZE, 1):
-        mask = roffset < MID_SIZE
-        mid_ptrs = mid + roffset
-        mid_val = tl.load(mid_ptrs, mask=mask, other=1.0).to(tl.int1)
-        all_val = all_val and mid_val
+    all_val = tl.reduce(mid_val, axis=0, combine_fn=reduce_all)
     tl.store(out, all_val)
 
 
 def all(inp):
     logging.debug("GEMS ALL")
-    n_elements = inp.numel()  #
+    n_elements = inp.numel()
     # block_size = triton.next_power_of_2(math.ceil(math.sqrt(n_elements)))
     # mid_size = triton.cdiv(n_elements, block_size)
-    mid_size = 12  # CLUSTER_NUM
-    block_size = triton.next_power_of_2(triton.cdiv(n_elements, mid_size))
+    # block_mid = triton.next_power_of_2(mid_size)
+    mid_size = 8  # CLUSTER_NUM
+    block_size = triton.next_power_of_2(triton.cdiv(inp.numel(), mid_size))
     block_mid = triton.next_power_of_2(mid_size)
-
-    mid = torch.empty((mid_size,), dtype=torch.bool, device=inp.device)
-    out = torch.empty([], dtype=torch.bool, device=inp.device)
     final_mid_size = builtins.min(
         math.ceil(inp.numel() / block_size), builtins.min(mid_size, inp.numel())
     )
 
-    if inp.dtype is torch.bool:
-        with torch.cuda.device(inp.device):
-            all_kernel_1_bool[(mid_size, 1)](inp, mid, n_elements, mid_size, block_size)
-            all_kernel_2_bool[(1, 1)](mid, out, final_mid_size, block_mid)
-    else:
-        with torch.cuda.device(inp.device):
-            all_kernel_1[(mid_size, 1)](inp, mid, n_elements, mid_size, block_size)
-            all_kernel_2[(1, 1)](mid, out, final_mid_size, block_mid)
+    mid = torch.empty((mid_size,), dtype=torch.bool, device=inp.device)
+    out = torch.empty([], dtype=torch.bool, device=inp.device)
+
+    with torch.cuda.device(inp.device):
+        all_kernel_1[(mid_size, 1)](inp, mid, n_elements, mid_size, block_size)
+        all_kernel_2[(1, 1)](mid, out, final_mid_size, block_mid)
 
     return out
 
