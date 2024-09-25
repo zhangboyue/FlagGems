@@ -55,18 +55,14 @@ def heur_block_n(args):
     return min(4096, triton.next_power_of_2(args["N"]))
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 512}, num_warps=8, num_stages=5),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
     }
 )
@@ -92,6 +88,7 @@ def argmax_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     inp_ptrs = inp + offset
     inp_vals = tl.load(inp_ptrs, mask=mask, other=-float("inf"))
+    inp_vals = tl.where(mask, inp_vals, -float("inf"))
     result_index = tl.argmax(inp_vals, axis=1)
     out_index_ptrs = out_index + offset_index
     tl.store(out_index_ptrs, result_index, mask=mask1)
@@ -154,5 +151,7 @@ def argmax(inp, dim=None, keepdim=False, *, dtype=None):
             triton.cdiv(M, meta["BLOCK_M"]),
             K,
         )
+        print(f"out_index = {out_index}")
         argmax_kernel[grid](inp, out_index, M, N, K)
+        print(f"out_index = {out_index}")
         return out_index
