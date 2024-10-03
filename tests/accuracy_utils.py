@@ -27,7 +27,6 @@ DIM_POINTWISE_SHAPES = [
 DIMS = [[0], [-2], [2], [0, 2], [2, 1], [0, -1, 1]]
 
 FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]
-FLOAT_DTYPES = [torch.float16, torch.float32]
 ALL_FLOAT_DTYPES = [torch.float16, torch.float32, torch.float64, torch.bfloat16]
 INT_DTYPES = [torch.int16, torch.int32]
 ALL_INT_DTYPES = [torch.int16, torch.int32, torch.int64]
@@ -87,6 +86,20 @@ def gems_assert_equal(a, b):
     if TO_CPU:
         a = a.to("cpu")
     assert torch.equal(a, b)
+
+
+# def gems_assert_equal(a, b):
+#     if TO_CPU:
+#         a = a.to("cpu")
+
+#     if not torch.equal(a, b):
+#         unequal_indices = (a != b).nonzero(as_tuple=True)
+#         print("Tensors are not equal. Indices of unequal elements:")
+#         for idx in zip(*unequal_indices):
+#             print(f"Index: {idx}, a: {a[idx]}, b: {b[idx]}")
+#         assert False, "Tensors are not equal."
+#     else:
+#         print("Tensors are equal.")
 
 
 # XPU Setting

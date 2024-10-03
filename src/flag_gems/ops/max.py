@@ -41,27 +41,18 @@ def max_kernel_2(mid, out, mid_size: tl.constexpr, BLOCK_MID: tl.constexpr):
     tl.store(out, max_val)
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
 def heur_block_n(args):
-    return triton.next_power_of_2(args["N"])
+    return min(8192, triton.next_power_of_2(args["N"]))
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        # triton.Config({"BLOCK_M": 8}, num_warps=8, num_stages=4),
-        # triton.Config({"BLOCK_M": 8}, num_warps=8, num_stages=5),
-        # triton.Config({"BLOCK_M": 16}, num_warps=8, num_stages=4),
-        # triton.Config({"BLOCK_M": 16}, num_warps=8, num_stages=5),
-        # triton.Config({"BLOCK_M": 32}, num_warps=8, num_stages=4),
-        triton.Config({"BLOCK_M": 512}, num_warps=8, num_stages=5),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
     }
 )
@@ -88,8 +79,9 @@ def max_kernel(
     mask = m_offset[:, None] < M and n_offset[None, :] < N
     inp_ptrs = inp + offset
     inp_vals = tl.load(inp_ptrs, mask=mask, other=-float("inf"))
-    result_value = tl.max(inp_vals, axis=1)
-    result_index = tl.argmax(inp_vals, axis=1)
+    result_value, result_index = tl.max(inp_vals, axis=1, return_indices=True)
+    # result_value = tl.max(inp_vals, axis=1)
+    # result_index = tl.argmax(inp_vals, axis=1)
 
     out_value_ptrs = out_value + offset_index
     out_index_ptrs = out_index + offset_index

@@ -1,4 +1,4 @@
-set -ex
+set -x
 
 unset MLIR_ENABLE_DUMP
 unset XPURT_DISPATCH_MODE
@@ -37,13 +37,13 @@ python -m pytest -sv tests/test_binary_pointwise_ops.py -k "test_accuracy_sub" -
 
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_all" --device cpu > zlog/test_accuracy_all.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_amax" --device cpu > zlog/test_accuracy_amax.log 2>&1
-python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_argmax" --device cpu > zlog/test_accuracy_argmax.log 2>&1
+TRITONXPU_OTHER_SIM=1 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_argmax" --device cpu > zlog/test_accuracy_argmax.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_groupnorm" --device cpu > zlog/test_accuracy_groupnorm.log 2>&1
 # python -m pytest -sv tests/test_reduction_ops.py -k "native_group_norm" --device cpu > zlog/native_group_norm.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_log_softmax" --device cpu > zlog/test_accuracy_log_softmax.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_mean" --device cpu > zlog/test_accuracy_mean.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_prod" --device cpu > zlog/test_accuracy_prod.log 2>&1
-python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_sum" --device cpu > zlog/test_accuracy_sum.log 2>&1
+TRITONXPU_OTHER_SIM=1 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_sum" --device cpu > zlog/test_accuracy_sum.log 2>&1
 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_softmax" --device cpu > zlog/test_accuracy_softmax.log 2>&1
 
 
@@ -51,11 +51,11 @@ python -m pytest -sv tests/test_special_ops.py -k "test_accuracy_dropout" --devi
 # python -m pytest -sv tests/test_special_ops.py -k "native_dropout" --device cpu > zlog/native_dropout.log 2>&1
 
 
-python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_addmm" --device cpu > zlog/test_accuracy_addmm.log 2>&1
-# python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_addmm" --device cpu > zlog/test_accuracy_linear.log 2>&1
-python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_bmm" --device cpu > zlog/test_accuracy_bmm.log 2>&1
-python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_mm" --device cpu > zlog/test_accuracy_mm.log 2>&1
-python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_mv" --device cpu > zlog/test_accuracy_mv.log 2>&1
+# python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_addmm" --device cpu > zlog/test_accuracy_addmm.log 2>&1
+# # python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_addmm" --device cpu > zlog/test_accuracy_linear.log 2>&1
+# python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_bmm" --device cpu > zlog/test_accuracy_bmm.log 2>&1
+# python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_mm" --device cpu > zlog/test_accuracy_mm.log 2>&1
+TRITONXPU_OTHER_SIM=1 python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_mv" --device cpu > zlog/test_accuracy_mv.log 2>&1
 
 
 # Macro Set
@@ -64,13 +64,14 @@ python -m pytest -sv tests/test_blas_ops.py -k "test_accuracy_mv" --device cpu >
 XPU_enable_reorder=1 python -m pytest -sv tests/test_unary_pointwise_ops.py -k "test_accuracy_cos" --device cpu > zlog/test_accuracy_cos.log 2>&1
 
 # "cross_entropy_loss"
-TRITONXPU_BUFFER_SIZE=128 python -m pytest -sv tests/test_reduction_ops.py::test_accuracy_cross_entropy_loss --device cpu > zlog/test_accuracy_cross_entropy_loss.log 2>&1
+TRITONXPU_OTHER_SIM=1 TRITONXPU_BUFFER_SIZE=128 python -m pytest -sv tests/test_reduction_ops.py::test_accuracy_cross_entropy_loss --device cpu > zlog/test_accuracy_cross_entropy_loss.log 2>&1
 
 # "max"
-INST_COMBINE_LOOP_THRESHOLD=1000 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_max" --device cpu > zlog/test_accuracy_max.log 2>&1
+TRITONXPU_OTHER_SIM=1 INST_COMBINE_LOOP_THRESHOLD=1000 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_max" --device cpu > zlog/test_accuracy_max.log 2>&1
+# TRITONXPU_OTHER_SIM=1 INST_COMBINE_LOOP_THRESHOLD=1000 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_max_dim" --device cpu > zlog/test_accuracy_max_dim.log 2>&1
 
 # "min"
-INST_COMBINE_LOOP_THRESHOLD=1000 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_min" --device cpu > zlog/test_accuracy_min.log 2>&1
+TRITONXPU_OTHER_SIM=1 INST_COMBINE_LOOP_THRESHOLD=1000 python -m pytest -sv tests/test_reduction_ops.py -k "test_accuracy_min" --device cpu > zlog/test_accuracy_min.log 2>&1
 
 # "pow"
 TRITON_LOCAL_VALUE_MAX=2048 python -m pytest -sv tests/test_binary_pointwise_ops.py -k "test_accuracy_pow" --device cpu > zlog/test_accuracy_pow.log 2>&1

@@ -15,10 +15,6 @@ class Reduction(IntEnum):
     SUM = 2
 
 
-def heur_block_n(args):
-    return triton.next_power_of_2(args["N"])
-
-
 def heur_num_warps(args):
     if args["N"] <= 1024:
         return 4
@@ -28,18 +24,18 @@ def heur_num_warps(args):
         return 16
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
+def heur_block_n(args):
+    return args["N"]
+
+
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 512}, num_stages=4),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
         "num_warps": heur_num_warps,
     }
@@ -75,17 +71,9 @@ def log_softmax_and_mul_kernel(
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 512}, num_stages=4),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
         "num_warps": heur_num_warps,
     }
@@ -129,17 +117,9 @@ def softmax_and_sub_kernel(
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_M": 512}, num_stages=4),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
         "num_warps": heur_num_warps,
     }

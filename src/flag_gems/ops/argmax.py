@@ -51,12 +51,12 @@ def argmax_kernel_2(
     tl.store(out, out_val)
 
 
-def heur_block_n(args):
-    return min(4096, triton.next_power_of_2(args["N"]))
-
-
 def heur_block_m(args):
     return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
+def heur_block_n(args):
+    return min(8192, triton.next_power_of_2(args["N"]))
 
 
 @libentry()
@@ -151,7 +151,5 @@ def argmax(inp, dim=None, keepdim=False, *, dtype=None):
             triton.cdiv(M, meta["BLOCK_M"]),
             K,
         )
-        print(f"out_index = {out_index}")
         argmax_kernel[grid](inp, out_index, M, N, K)
-        print(f"out_index = {out_index}")
         return out_index

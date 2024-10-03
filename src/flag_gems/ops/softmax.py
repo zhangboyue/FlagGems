@@ -12,7 +12,7 @@ def heur_block_m(args):
 
 
 def heur_block_n(args):
-    return triton.next_power_of_2(args["N"])
+    return args["N"]
 
 
 @libentry()
@@ -44,6 +44,7 @@ def softmax_kernel(
     numerator = tl.exp(row_minus_max)
     denominator = tl.sum(numerator, axis=1)[:, None]
     softmax_output = numerator / denominator
+    # softmax_output = inp
     output_ptrs = output_ptr + offset
     tl.store(output_ptrs, softmax_output, mask=mask)
 
@@ -98,7 +99,7 @@ class Softmax(torch.autograd.Function):
         inp = x.contiguous()
         if dtype is None:
             dtype = x.dtype
-        out = torch.empty_like(inp, dtype=dtype)
+        out = torch.ones_like(inp, dtype=dtype)
         K = inp.numel() // M // N
 
         grid = lambda meta: (

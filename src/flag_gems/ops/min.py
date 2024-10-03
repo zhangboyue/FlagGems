@@ -39,27 +39,18 @@ def min_kernel_2(mid, out, mid_size: tl.constexpr, BLOCK_MID: tl.constexpr):
     tl.store(out, min_val)
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
 def heur_block_n(args):
-    return triton.next_power_of_2(args["N"])
+    return builtins.min(8192, triton.next_power_of_2(args["N"]))
 
 
 @libentry()
-@triton.autotune(
-    configs=[
-        # triton.Config({"BLOCK_M": 8}, num_warps=8, num_stages=4),
-        # triton.Config({"BLOCK_M": 8}, num_warps=8, num_stages=5),
-        # triton.Config({"BLOCK_M": 16}, num_warps=8, num_stages=4),
-        # triton.Config({"BLOCK_M": 16}, num_warps=8, num_stages=5),
-        # triton.Config({"BLOCK_M": 32}, num_warps=8, num_stages=4),
-        triton.Config({"BLOCK_M": 512}, num_warps=8, num_stages=5),
-    ],
-    key=[
-        "M",
-        "N",
-    ],
-)
 @triton.heuristics(
     {
+        "BLOCK_M": heur_block_m,
         "BLOCK_N": heur_block_n,
     }
 )
@@ -88,8 +79,7 @@ def min_kernel(
     inp_vals = tl.load(
         inp_ptrs, mask=mask, other=float("inf")
     )  # remove .to(tl.float32)
-    result_value = tl.min(inp_vals, axis=1)
-    result_index = tl.argmin(inp_vals, axis=1)
+    result_value, result_index = tl.min(inp_vals, axis=1, return_indices=True)
 
     out_value_ptrs = out_value + offset_index
     out_index_ptrs = out_index + offset_index

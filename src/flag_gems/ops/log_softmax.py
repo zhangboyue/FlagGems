@@ -12,7 +12,7 @@ def heur_block_m(args):
 
 
 def heur_block_n(args):
-    return triton.next_power_of_2(args["N"])
+    return args["N"]
 
 
 def heur_num_warps(args):

@@ -66,6 +66,7 @@ def group_norm_kernel(
             x = tl.where(rcmask, X_val - mean, 0.0)
             var_base = var_base + x * x
     var = var_base / num_elements
+    # rstd = tl.libdevice_xpu.rsqrt(var + eps)
     rstd = tl.extra.xpu.libdevice.rsqrt(var + eps)
 
     X_val = tl.load(X_ptr, mask=xy_mask, other=0.0).to(tl.float32)

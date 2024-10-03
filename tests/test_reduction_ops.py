@@ -506,7 +506,7 @@ def test_accuracy_min(shape, dtype):
 def test_accuracy_min_dim(shape, dim, keepdim, dtype):
     if dim == 0:
         shape = XPU_REDUCTION_SHAPES_N[0]  # SHAPE[1] == 1   GRIDY == 1
-    shape = (512, 9)
+
     inp = torch.randn(shape, dtype=dtype, device="cuda")
     ref_inp = to_reference(inp)
 
