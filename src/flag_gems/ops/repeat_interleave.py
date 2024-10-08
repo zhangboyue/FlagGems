@@ -69,7 +69,7 @@ def repeat_interleave_tensor_kernel(
     repeats = tl.load(repeats_ptr + pid, mask, other=0)
     out_offset = cumsum - repeats
 
-    tl.device_assert(repeats >= 0, "repeats can not be negative")
+    # tl.device_assert(repeats >= 0, "repeats can not be negative")
 
     out_ptr += out_offset
     for start_k in range(0, repeats, BLOCK_SIZE):

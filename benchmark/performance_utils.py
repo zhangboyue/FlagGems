@@ -61,6 +61,12 @@ class Benchmark:
             resolve_conj_arg: "resolve_conj_arg",
             skip_layernorm_args: "skip_layernorm_args",
             skip_rmsnorm_args: "skip_rmsnorm_args",
+            stack_args: "stack_args",
+            hstack_args: "hstack_args",
+            cat_args: "cat_args",
+            cat_int_args: "cat_int_args",
+            repeat_interleave_self_int_arg: "repeat_interleave_self_int_arg",
+            repeat_interleave_tensor_arg: "repeat_interleave_tensor_arg",
         }
 
         self.kwags_func_map = {
@@ -74,6 +80,7 @@ class Benchmark:
             arange_kwargs: "arange_kwargs",
             embedding_kwargs: "embedding_kwargs",
             fill_kwargs: "fill_kwargs",
+            cat_kwargs: "cat_kwargs",
         }
 
         self.torch_op_map = {
@@ -143,6 +150,13 @@ class Benchmark:
                     mapCode = ""
                     if self.gems_op is not None:
                         mapCode += f" {self.gems_op_map.get(self.gems_op)}\n"
+                    else:
+                        mapCode += "None\n"
+
+                    mapCode += (
+                        "FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]\n"
+                        "INT_DTYPES = [torch.int16, torch.int32]"
+                    )
 
                     for func in self.torch_op_map.keys():
                         mapCode += f"\n{inspect.getsource(func)}"
@@ -182,7 +196,7 @@ gems_op = """
                 self.mock_code += f"""
 class BenchmarkMock:
     def __init__(self):
-        if 'use_gems' in globals():
+        if 'fused_gems' in globals():
             self.op = gems_op
         else:
             self.op = {torchOpDesc}
@@ -218,7 +232,7 @@ if __name__ == '__main__':
 
                 torch_perf = self.profile(self.torch_op, *args, **kwargs)
                 if self.gems_op:
-                    self.mock_code = "use_gems=True\n" + self.mock_code
+                    self.mock_code = "fused_gems=True\n" + self.mock_code
                     gems_perf = self.profile(self.gems_op, *args, **kwargs)
                     # print(self.mock_code)
                     # exit()
@@ -498,3 +512,52 @@ def fill_kwargs(dtype, batch, size):
         "input": input,
         "value": value,
     }
+
+
+def stack_args(dtype, batch, size):
+    inp = torch.randn(size=(batch, size), dtype=dtype, device="cuda")
+    return {(inp,) * 3}
+
+
+def hstack_args(dtype, batch, size):
+    inp = torch.randn(size=(batch, size), dtype=dtype, device="cuda")
+    return {(inp,) * 3}
+
+
+def cat_args(dtype, batch, size):
+    inp1 = torch.randn([batch, size], dtype=dtype, device="cuda")
+    inp2 = torch.randn([batch, size], dtype=dtype, device="cuda")
+    return [[inp1, inp2]]
+
+
+def cat_kwargs(dtype, batch, size):
+    return {"dim": 0}
+
+
+def cat_int_args(dtype, batch, size):
+    inp1 = torch.randint(
+        low=0, high=0x7FFF, size=[batch, size], dtype=dtype, device="cuda"
+    )
+    inp2 = torch.randint(
+        low=0, high=0x7FFF, size=[batch, size], dtype=dtype, device="cuda"
+    )
+    return [[inp1, inp2]]
+
+
+def repeat_interleave_self_int_arg(dtype, batch, size):
+    inp = torch.randn([batch, size], dtype=dtype, device="cuda")
+    repeats = 2
+    return inp, repeats
+
+
+def repeat_interleave_tensor_arg(dtype, batch, size):
+    repeats = torch.randint(
+        low=0,
+        high=0x7F,
+        size=[
+            size,
+        ],
+        dtype=dtype,
+        device="cuda",
+    )
+    return (repeats,)
