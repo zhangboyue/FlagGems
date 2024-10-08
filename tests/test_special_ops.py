@@ -549,7 +549,7 @@ def test_accuracy_stack(shape, dim, dtype):
             )
             for s in shape
         ]
-    ref_inp = [to_reference(_, True) for _ in inp]
+    ref_inp = [to_reference(_) for _ in inp]
     ref_out = torch.stack(ref_inp, dim)
 
     with flag_gems.use_gems():
@@ -651,7 +651,7 @@ def test_accuracy_cat(shape, dim, dtype):
             )
             for s in shape
         ]
-    ref_inp = [to_reference(_, True) for _ in inp]
+    ref_inp = [to_reference(_) for _ in inp]
     ref_out = torch.cat(ref_inp, dim)
 
     with flag_gems.use_gems():
