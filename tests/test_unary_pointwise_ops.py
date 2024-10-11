@@ -89,13 +89,9 @@ def test_accuracy_gelu(shape, dtype):
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_isinf(shape, dtype):
-    torch.manual_seed(8646031341548458403)
-    print(f"seed = {torch.initial_seed()}")
-    shape = 256 * 64
     inp = torch.randn(shape, dtype=dtype, device="cuda")
     inp = torch.masked_fill(inp, inp > 1.0, -float("inf"))
     ref_inp = to_reference(inp)
-    print(f"inp[1] = {inp[1]}")
 
     ref_out = torch.isinf(ref_inp)
     with flag_gems.use_gems():

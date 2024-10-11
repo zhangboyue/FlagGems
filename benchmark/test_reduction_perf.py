@@ -8,6 +8,7 @@ from .performance_utils import (
     Benchmark,
     cross_entropy_loss_args,
     cumsum_args,
+    group_norm_args,
     layer_norm_args,
     unary_arg,
 )
@@ -30,7 +31,7 @@ def test_perf_amax():
         op_name="amax",
         torch_op=torch.amax,
         arg_func=unary_arg,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=REDUCTION_BATCH,
         sizes=SIZES,
     )
@@ -86,31 +87,11 @@ def test_perf_cumsum():
 
 
 def test_perf_groupnorm():
-    def group_norm_args(dtype, batch, size):
-        C = 16
-        G = 16
-        inp = torch.randn([batch, C, size], dtype=dtype, device="cuda")
-        weight = torch.randn(
-            [
-                C,
-            ],
-            dtype=dtype,
-            device="cuda",
-        )
-        bias = torch.randn(
-            [
-                C,
-            ],
-            dtype=dtype,
-            device="cuda",
-        )
-        return inp, G, weight, bias
-
     bench = Benchmark(
         op_name="groupnorm",
         torch_op=torch.nn.functional.group_norm,
         arg_func=group_norm_args,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=BLAS_BATCH,
         sizes=SIZES,
     )
@@ -146,7 +127,7 @@ def test_perf_max():
         op_name="max",
         torch_op=torch.max,
         arg_func=unary_arg,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=REDUCTION_BATCH,
         sizes=SIZES,
     )
@@ -182,7 +163,7 @@ def test_perf_prod():
         op_name="prod",
         torch_op=torch.prod,
         arg_func=unary_arg,
-        dtypes=FLOAT_DTYPES,
+        dtypes=[torch.float16, torch.float32],
         batch=REDUCTION_BATCH,
         sizes=SIZES,
     )
