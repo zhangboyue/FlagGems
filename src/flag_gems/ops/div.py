@@ -117,7 +117,7 @@ def _float_floordiv(x, y):
     q = div_rn(x - remainder, y)
     q = tl.where(imperfect & different_sign, q - 1, q)
 
-    floor_q = tl.math.floor(q)
+    floor_q = tl.libdevice_xpu.floor(q)
     c = q - floor_q > 0.5
     floor_q = tl.where(c, floor_q + 1.0, floor_q)
 

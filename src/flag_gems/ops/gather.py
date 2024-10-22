@@ -45,9 +45,30 @@ def generate_gather_kernel(
     code.newline()
     code.newline()
 
+    code.writeline("def heur_block_m(args):")
+    with code.indent():
+        code.writeline('return triton.next_power_of_2(triton.cdiv(args["M"], 8))')
+
+    code.newline()
+
+    code.writeline("def heur_block_n(args):")
+    with code.indent():
+        code.writeline('return triton.next_power_of_2(args["N"])')
+
+    code.newline()
+    code.newline()
+
     # the decorators
     code.writeline("@libentry()")
-    code.writeline('@triton.autotune(configs=cfggen(), key=["M", "N"])')
+    # code.writeline('@triton.autotune(configs=cfggen(), key=["M", "N"])')
+    code.writeline("@triton.heuristics(")
+    with code.indent():
+        code.writeline("values={")
+        with code.indent():
+            code.writeline('"BLOCK_M": heur_block_m,')
+            code.writeline('"BLOCK_N": heur_block_n,')
+        code.writeline("},")
+    code.writeline(")")
     code.writeline("@triton.jit")
 
     # signature

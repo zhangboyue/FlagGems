@@ -67,6 +67,7 @@ class Benchmark:
             cat_int_args: "cat_int_args",
             repeat_interleave_self_int_arg: "repeat_interleave_self_int_arg",
             repeat_interleave_tensor_arg: "repeat_interleave_tensor_arg",
+            gather_args: "gather_args",
         }
 
         self.kwags_func_map = {
@@ -561,3 +562,29 @@ def repeat_interleave_tensor_arg(dtype, batch, size):
         device="cuda",
     )
     return (repeats,)
+
+
+def gather_args(dtype, batch, size):
+    inp_shape = [batch, size]
+    inp = torch.randn(inp_shape, dtype=dtype, device="cuda")
+    import random
+
+    dim = random.choice([0, 1])
+    size_dim = inp_shape[dim]
+    index_shape = [
+        random.randint(1, inp_shape[0]),
+        random.randint(1, inp_shape[1]),
+    ]
+    index = torch.empty(tuple(index_shape), dtype=torch.long, device="cuda")
+
+    m, n = index_shape
+
+    index_size_dim = index_shape[dim]
+    # make unique indices
+    for i in range(1 if dim == 0 else m):
+        for j in range(1 if dim == 1 else n):
+            ii = [i, j]
+            ii[dim] = slice(0, index.size(dim) + 1)
+            index[tuple(ii)] = torch.randperm(size_dim)[0:index_size_dim]
+
+    return (inp, dim, index)

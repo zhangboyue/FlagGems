@@ -34,8 +34,22 @@ def cfggen_last():
     return configs
 
 
+def heur_block_m(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
+def heur_block_n(args):
+    return triton.next_power_of_2(args["N"])
+
+
 @libentry()
-@triton.autotune(configs=cfggen_last(), key=["M", "N"])
+# @triton.autotune(configs=cfggen_last(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_ROW_SIZE": heur_block_m,
+        "BLOCK_COL_SIZE": heur_block_n,
+    },
+)
 @triton.jit(do_not_specialize=["eps"])
 def weight_norm_kernel_last(
     output,
