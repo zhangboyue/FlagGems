@@ -206,7 +206,8 @@ def isin_by_search(
             in1, sorted=True, return_inverse=False, return_counts=False
         )
     else:
-        in1_ravel, _ = torch.sort(in1.ravel())
+        in1_ravel, _ = torch.sort(in1.cpu().ravel())
+        in1_ravel = in1_ravel.cuda()
     # launch kernel func
     M = in0_ravel.numel()
     N = in1_ravel.numel()
@@ -222,6 +223,8 @@ def isin_by_search(
         _, BLOCK_M, num_warps = launch_arg(None, 2048, M, 16)
     log_n = int(math.log2(N)) + 1
     ctas_num = min(65536, triton.cdiv(M, BLOCK_M))
+    ctas_num = 12
+    BLOCK_M = triton.cdiv(M, ctas_num)
     tiles_per_cta = triton.cdiv(M, BLOCK_M * ctas_num)
     grid = (ctas_num,)
     out = torch.empty_like(in0_ravel, dtype=torch.bool)

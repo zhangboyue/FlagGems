@@ -34,8 +34,29 @@ def cfggen_last():
     return configs
 
 
+def heur_block_m_first(args):
+    return triton.next_power_of_2(triton.cdiv(args["M"], 8))
+
+
+def heur_block_n_first(args):
+    return 1
+
+
+def heur_block_m_last(args):
+    return 1
+
+
+def heur_block_n_last(args):
+    return triton.next_power_of_2(triton.cdiv(args["N"], 8))
+
+
 @libentry()
-@triton.autotune(configs=cfggen_last(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_ROW_SIZE": heur_block_m_last,
+        "BLOCK_COL_SIZE": heur_block_n_last,
+    },
+)
 @triton.jit(do_not_specialize=["eps"])
 def weight_norm_kernel_last(
     output,
@@ -75,7 +96,12 @@ def weight_norm_kernel_last(
 
 
 @libentry()
-@triton.autotune(configs=cfggen_first(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_ROW_SIZE": heur_block_m_first,
+        "BLOCK_COL_SIZE": heur_block_n_first,
+    },
+)
 @triton.jit(do_not_specialize=["eps"])
 def weight_norm_kernel_first(
     output,
@@ -115,7 +141,12 @@ def weight_norm_kernel_first(
 
 
 @libentry()
-@triton.autotune(configs=cfggen_last(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_ROW_SIZE": heur_block_m_last,
+        "BLOCK_COL_SIZE": heur_block_n_last,
+    },
+)
 @triton.jit(do_not_specialize=["eps"])
 def weight_norm_bwd_kernel_last(
     v_grad,
@@ -165,7 +196,12 @@ def weight_norm_bwd_kernel_last(
 
 
 @libentry()
-@triton.autotune(configs=cfggen_first(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_ROW_SIZE": heur_block_m_first,
+        "BLOCK_COL_SIZE": heur_block_n_first,
+    },
+)
 @triton.jit(do_not_specialize=["eps"])
 def weight_norm_bwd_kernel_first(
     v_grad,

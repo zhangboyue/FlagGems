@@ -121,3 +121,19 @@ def unsqueeze_tensor(inp, max_ndim):
     for _ in range(inp.ndim, max_ndim):
         inp = inp.unsqueeze(-1)
     return inp
+
+
+# XPU Setting
+# some reduction op needs specific BLOCK_SIZE params
+# REDUCTION_SHAPES = [(4096, 256)]
+XPU_REDUCTION_SHAPES_M = [(12, 256)]  # SHAPE[0] <= CLUSTE_NUM   GRIDX <= CLUSTE_NUM
+XPU_REDUCTION_SHAPES_N = [(4096, 1)]  # SHAPE[1] == 1            GRIDY == 1
+XPU_POINTWISE_2D_SHAPES_8192 = [
+    (16, 1024, 8)
+]  # SHAPE[-1] * SHAPE[-2] <= 8192(core_num * buffer_size limit)
+
+ALL_FLOAT_DTYPES = [torch.float32, torch.float16, torch.bfloat16]
+ALL_INT_DTYPES = [torch.int32, torch.int16]  # miss torch.int64
+
+# vendor-test shape
+KEY_OPS_SHAPES = [(1024, 32), (1024, 96), (1024, 8192), (1024, 20480), (1024, 32768)]

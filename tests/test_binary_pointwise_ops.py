@@ -23,7 +23,8 @@ from .conftest import TO_CPU
 
 
 def replace_zeros(inp):
-    return torch.where(inp == 0, 1, inp)
+    inp = inp.cpu()
+    return torch.where(inp == 0, 1, inp).cuda()
 
 
 @pytest.mark.add
@@ -474,19 +475,11 @@ def test_accuracy_floor_divide_scalar_scalar(dtype):
 @pytest.mark.parametrize("dtype", INT_DTYPES)
 def test_accuracy_remainder(shape, dtype):
     inp1 = torch.randint(
-        torch.iinfo(dtype).min,
-        torch.iinfo(dtype).max,
-        shape,
-        dtype=dtype,
-        device="cuda",
-    )
+        torch.iinfo(dtype).min, torch.iinfo(dtype).max, shape, dtype=dtype
+    ).cuda()
     inp2 = torch.randint(
-        torch.iinfo(dtype).min,
-        torch.iinfo(dtype).max,
-        shape,
-        dtype=dtype,
-        device="cuda",
-    )
+        torch.iinfo(dtype).min, torch.iinfo(dtype).max, shape, dtype=dtype
+    ).cuda()
     if TO_CPU:
         inp1 = replace_zeros(inp1)
         inp2 = replace_zeros(inp2)

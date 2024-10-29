@@ -311,7 +311,9 @@ class KernelGenerator:
             if ndim > 0:
                 # strides for inputs
                 for i in range(schema.num_input_tensors()):
-                    stride_args = _cs(f"in{i}_stride{j}: int" for j in range(ndim))
+                    stride_args = _cs(
+                        f"in{i}_stride{j}: tl.constexpr" for j in range(ndim)
+                    )
                     code.writeline(f"{stride_args}, # strides for in{i}")
                     if with_block_pointer:
                         stride_order_args = _cs(
@@ -321,7 +323,9 @@ class KernelGenerator:
 
                 # strides for outputs
                 for i in range(schema.num_output_tensors()):
-                    stride_args = _cs(f"out{i}_stride{j}: int" for j in range(ndim))
+                    stride_args = _cs(
+                        f"out{i}_stride{j}: tl.constexpr" for j in range(ndim)
+                    )
                     code.writeline(f"{stride_args}, # strides for out{i}")
                     if with_block_pointer:
                         stride_order_args = _cs(
@@ -332,7 +336,7 @@ class KernelGenerator:
                         )
 
                 # task space, used to reconstruct multi index
-                task_space_args = _cs(f"s{i}: int" for i in range(ndim))
+                task_space_args = _cs(f"s{i}: tl.constexpr" for i in range(ndim))
                 code.writeline(f"{task_space_args}, # task_space")
 
                 # number of tasks, used to compute mask
@@ -828,6 +832,7 @@ class WrapperGenerator:
             code.writeline("shape = out0.shape")
             code.writeline("num_tasks = out0.numel()")
             max_tile_size = self.config.max_tile_size
+            max_tile_size = 8192
             code.writeline(
                 f"tile_sizes = heuristics_for_tile_size({max_tile_size}, *shape)"
             )
@@ -837,6 +842,9 @@ class WrapperGenerator:
             )
             max_grid_size0 = self.config.max_grid_size[0]
             code.writeline(f"num_ctas = min({max_grid_size0}, num_tiles)")
+            # code.writeline(f"num_tiles = 12")
+            # code.writeline(f"num_ctas = 12")
+            # code.writeline(f"tile_size = triton.cdiv(num_tasks, num_ctas)")
 
             code.writeline("tiles_per_cta = triton.cdiv(num_tiles, num_ctas)")
             code.writeline("num_warps = heuristics_for_num_warps(tile_size)")

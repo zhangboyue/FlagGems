@@ -455,7 +455,9 @@ def test_pad(shape, dtype, pad_mode, contiguous):
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_upsample_bicubic2d_aa(dtype, shape, scale, align_corners):
-    input = torch.rand(shape, dtype=dtype, device="cuda")
+    torch.manual_seed(8646031341548458403)
+    print(f"seed = {torch.initial_seed()}")
+    input = torch.rand(shape, dtype=dtype).cuda()
     ref_i = to_reference(input, True)
     output_size = tuple([int(input.shape[i + 2] * scale[i]) for i in range(2)])
     ref_out = torch._C._nn._upsample_bicubic2d_aa(
@@ -472,6 +474,10 @@ def test_upsample_bicubic2d_aa(dtype, shape, scale, align_corners):
         return interpolate_range
 
     reduce_dim = span(scale[0]) * span(scale[1])
+    # print(f"inp1[31][15][251][123]={inp1[31][15][251][123]}")
+    # print(f"inp2[31][15][251][123]={inp2[31][15][251][123]}")
+    print(f"res_out[31][15][251][123]={res_out[31][15][251][123]}")
+    print(f"ref_out[31][15][251][123]={ref_out[31][15][251][123]}")
     gems_assert_close(res_out, ref_out, dtype, reduce_dim=reduce_dim)
 
 
@@ -518,10 +524,10 @@ def test_arange(start, step, end, dtype, device, pin_memory):
 @pytest.mark.parametrize("assume_unique", [False, True])
 @pytest.mark.parametrize("invert", [False, True])
 def test_accuracy_isin(shape, dtype, assume_unique, invert):
-    inp1 = torch.randint(-100, 100, shape, device="cuda").to(dtype)
+    inp1 = torch.randint(-100, 100, shape).to(dtype).cuda()
     test_numel = inp1.numel() // 2 if inp1.numel() > 1 else 1
     test_shape = (test_numel,)
-    inp2 = torch.randint(-10, 10, test_shape, device="cuda").to(dtype)
+    inp2 = torch.randint(-10, 10, test_shape).to(dtype).cuda()
     inp1.ravel()[-1] = 0
     if assume_unique:
         inp1 = torch.unique(inp1)

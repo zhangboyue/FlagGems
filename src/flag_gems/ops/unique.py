@@ -781,7 +781,8 @@ def _unique2(
             sorted_data, sorted_indices, return_counts
         )
     else:
-        sorted_data, _ = torch.sort(in0.ravel(), stable=False)
+        sorted_data, _ = torch.sort(in0.cpu().ravel(), stable=False)
+        sorted_data = sorted_data.cuda()
         data_out, inverse_indices, counts = sorted_quick_unique_flat(
             sorted_data, return_counts
         )

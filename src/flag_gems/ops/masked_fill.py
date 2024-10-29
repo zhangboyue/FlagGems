@@ -20,8 +20,23 @@ def cfggen():
     return configs
 
 
+def heur_block_m(args):
+    # return 1
+    return 2
+    return triton.next_power_of_2(triton.cdiv(args["M"], 12))
+
+
+def heur_block_n(args):
+    return triton.next_power_of_2(args["N"])
+
+
 @libentry()
-@triton.autotune(configs=cfggen(), key=["M", "N"])
+@triton.heuristics(
+    values={
+        "BLOCK_M": heur_block_m,
+        "BLOCK_N": heur_block_n,
+    },
+)
 @triton.jit
 def masked_fill_kernel(
     inp, expand_mask, value, out, M, N, BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr
@@ -42,6 +57,7 @@ def masked_fill_kernel(
 
 
 def masked_fill(inp, mask, value):
+    # import pudb; pudb.set_trace()
     logging.debug("GEMS MASKED FILL")
     assert (
         isinstance(value, float)
@@ -58,7 +74,7 @@ def masked_fill(inp, mask, value):
 
     inp = inp.contiguous()
     mask = mask.contiguous()
-    value = value.contiguous()
+    # value = value.contiguous()
     expand_mask = mask.expand(inp.shape)
     out = torch.empty_like(inp, dtype=inp.dtype, device=inp.device)
 

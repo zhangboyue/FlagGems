@@ -22,17 +22,32 @@ def configs():
     ]
 
 
-@triton.autotune(configs=configs(), key=["N", "C", "OH", "OW"])
+def heur_block_x(args):
+    return 1
+    return triton.next_power_of_2(triton.cdiv(args["N"], 12))
+
+
+def heur_block_y(args):
+    return 1
+    # return triton.next_power_of_2(args["C"])
+
+
+@triton.heuristics(
+    values={
+        "BLOCK_X": heur_block_x,
+        "BLOCK_Y": heur_block_y,
+    },
+)
 @triton.jit
 def upsample_bicubic2d_aa_kernel(
     ptr_o,
     ptr_i,
-    N,
-    C,
-    OH,
-    OW,
-    IH,
-    IW,
+    N: tl.constexpr,
+    C: tl.constexpr,
+    OH: tl.constexpr,
+    OW: tl.constexpr,
+    IH: tl.constexpr,
+    IW: tl.constexpr,
     reciprocal_scale_h,
     reciprocal_scale_w,
     BLOCK_X: tl.constexpr,
@@ -373,17 +388,22 @@ def upsample_bicubic2d_aa_kernel(
 
 
 # upsample and downsample
-@triton.autotune(configs=configs(), key=["N", "C", "OH", "OW"])
+@triton.heuristics(
+    values={
+        "BLOCK_X": heur_block_x,
+        "BLOCK_Y": heur_block_y,
+    },
+)
 @triton.jit
 def general_interpolate_bicubic2d_aa_kernel(
     ptr_o,
     ptr_i,
-    N,
-    C,
-    OH,
-    OW,
-    IH,
-    IW,
+    N: tl.constexpr,
+    C: tl.constexpr,
+    OH: tl.constexpr,
+    OW: tl.constexpr,
+    IH: tl.constexpr,
+    IW: tl.constexpr,
     reciprocal_scale_h,
     reciprocal_scale_w,
     BLOCK_X: tl.constexpr,

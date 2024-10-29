@@ -7,16 +7,15 @@ import triton.language as tl
 from ..utils import libentry
 
 
+def heur_block_size(args):
+    return 8192
+
+
 @libentry()
-@triton.autotune(
-    configs=[
-        triton.Config({"BLOCK_SIZE": k}, num_warps=w)
-        for w in [4, 8, 16, 32]
-        for k in [512, 1024, 2048, 4096]
-    ],
-    key=[
-        "max_tile_elems",
-    ],
+@triton.heuristics(
+    values={
+        "BLOCK_SIZE": heur_block_size,
+    },
 )
 @triton.jit
 def vstack_kernel(

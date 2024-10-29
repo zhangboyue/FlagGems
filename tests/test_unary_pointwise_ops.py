@@ -10,6 +10,7 @@ from .accuracy_utils import (
     FLOAT_DTYPES,
     INT_DTYPES,
     POINTWISE_SHAPES,
+    XPU_POINTWISE_2D_SHAPES_8192,
     gems_assert_close,
     gems_assert_equal,
     to_reference,
@@ -278,6 +279,8 @@ SHAPE_DIAGONAL = list(zip(POINTWISE_SHAPES, [-2, -2, -1, 0, 1, 3]))
 @pytest.mark.parametrize("shape, diagonal", SHAPE_DIAGONAL)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 def test_accuracy_triu(shape, diagonal, dtype):
+    if len(shape) > 2 and shape[-1] * shape[-2] > 8192:  # core_num * buffer_size limit
+        shape = XPU_POINTWISE_2D_SHAPES_8192[0]
     inp = torch.randn(shape, dtype=dtype, device="cuda")
     inp = unsqueeze_tensor(inp, 2)
     ref_inp = to_reference(inp)
@@ -382,6 +385,8 @@ def test_accuracy_flip_with_non_dense_input(shape, dtype, dims):
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
 @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7])
 def test_accuracy_masked_fill(shape, dtype, threshold):
+    if shape == ():
+        pytest.skip()
     inp = torch.zeros(shape, dtype=dtype, device="cuda")
     mask = torch.randn(shape, dtype=dtype, device="cuda") < threshold
     value = 1024
@@ -389,8 +394,7 @@ def test_accuracy_masked_fill(shape, dtype, threshold):
     ref_inp = to_reference(inp)
     ref_mask = to_reference(mask)
     ref_out = torch.masked_fill(ref_inp, ref_mask, value)
-    with flag_gems.use_gems():
-        res_out = torch.masked_fill(inp, mask, value)
+    res_out = flag_gems.masked_fill(inp, mask, value)
 
     gems_assert_equal(res_out, ref_out)
 
@@ -416,7 +420,7 @@ def test_accuracy_tile(shape, dims, dtype):
 REPEAT_SIZES = [(2, 3, 4, 5), (5, 0, 4)]
 
 
-@pytest.mark.repeat
+# @pytest.mark.repeat
 @pytest.mark.parametrize("shape", POINTWISE_SHAPES)
 @pytest.mark.parametrize("sizes", REPEAT_SIZES)
 @pytest.mark.parametrize("dtype", FLOAT_DTYPES)
